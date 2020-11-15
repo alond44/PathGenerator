@@ -57,78 +57,106 @@ class PathGenerator:
         ---------
         Decreasing resolution might cause information loss.
         """
-        if enhance <= 0:
+        if multi <= 0:
             return
-        self._map_side *= multi
-        new_dsm = [[0 for j in range(self._map_side)] for i in range(self._map_side)]
         if enhance:
+            self._map_side *= multi
+            new_dsm = [[0 for j in range(self._map_side)] for i in range(self._map_side)]
             for x in range(0, len(new_dsm)):
                 for y in range(0, len(new_dsm)):
                     new_dsm[x][y] = self._dsm[int(x/multi)][int(y/multi)]
             self._pixel_dist = self._pixel_dist/multi
         else:
             # TODO: make sure its correct
-            for x in self._dsm:
-                curr_line = []
-                for y in self._dsm[x]:
-                    curr_line += [self._dsm[x][y] * multi]
-                new_dsm.append(curr_line)
+            prev_side = self._map_side
+            self._map_side = int(prev_side/multi) if prev_side % multi == 0 else 1 + int(prev_side/multi)
+            new_dsm = [[0 for j in range(self._map_side)] for i in range(self._map_side)]
+            for x in range(0, len(new_dsm)):
+                for y in range(0, len(new_dsm)):
+                    maxi = -1
+                    for i in range(0, multi):
+                        for j in range(0, multi):
+                            x_idx = x*multi + i
+                            y_idx = y*multi + j
+                            val = 0 if x_idx >= prev_side or y_idx >= prev_side else self._dsm[x_idx][y_idx]
+                            maxi = max(maxi, val)
+                    new_dsm[x][y] = maxi
             self._pixel_dist = self._pixel_dist*multi
 
-        self._dsm.clear()
+        # self._dsm.clear()
         self._dsm = new_dsm
+        assert self._map_side == len(self._dsm)
         self._map_side = len(self._dsm)
 
-
+    def print_map_size(self):
+        print(f'self._map_side: {self._map_side}')
+        print(f'len(self._dsm): {len(self._dsm)}')
+        print(f'len(self._dsm[0]): {len(self._dsm[0])}')
 
     def gen_path_dist(self):
         # TODO: implement
         pass
 
+    def print_path(self, points=None, path_color='r', path_style='--'):
+        """
+        Outputs the map with the given path on it.
 
-def print_path(dsm, points, path_color='r', path_style='--'):
-    """
-    Outputs the map with the given path on it.
+         Parameters
+        ----------
+        points : A 2D list.
+            The points that makes the path. points[0] holds the x values of the path's points and points[1] holds
+            the y values.
+        path_color : str
+            A single character indicating the paths color. The default value will create a red path.
+        path_style : str
+            A string that represent the graphing style. The default is dashed line.
 
-     Parameters
-    ----------
-    dsm : 2D matrix
-        The DSM map.
-    points : A 2D list.
-        The points that makes the path. points[0] holds the x values of the path's points and points[1] holds
-        the y values.
-    path_color : str
-        A single character indicating the paths color. The default value will create a red path.
-    path_style : str
-        A string that represent the graphing style. The default is dashed line.
-
-     See Also
-    --------
-    Examples for path_color and path_style can be found in the plot description
-    here: https://matplotlib.org/2.1.1/api/_as_gen/matplotlib.pyplot.plot.html
-    """
-    plot_style = path_color + path_style
-    plt.figure(1)
-    im = plt.imshow(dsm)
-    plt.plot(points[0], points[1], plot_style)
-    plt.show()
+         See Also
+        --------
+        Examples for path_color and path_style can be found in the plot description
+        here: https://matplotlib.org/2.1.1/api/_as_gen/matplotlib.pyplot.plot.html
+        """
+        plot_style = path_color + path_style
+        plt.figure(1)
+        im = plt.imshow(self._dsm)
+        if points is not None and len(points) >= 2:
+            plt.plot(points[0], points[1], plot_style)
+        plt.show()
 
 
 if __name__ == "__main__":
+    """
     Inputpath = 'C:/Users/alond/PycharmProjects/DSM_Paths'
     FileName = 'dsm_binary'
-    dsm = create_map(Inputpath, FileName)
-    print_path(dsm, [])
-    print(len(dsm))
-    t = time.time()
-    new_dsm = [[0 for j in range(len(dsm)*4)] for i in range(len(dsm)*4)]
+    dsm_ = create_map(Inputpath, FileName)
+    pg = PathGenerator(50, 100, dsm_)
+    print('Initial map: ')
+    pg.print_map_size()
+    pg.print_path([[], []])
+    pg.resize_dsm(2)
+    print('After expansion: ')
+    pg.print_map_size()
+    pg.print_path([[], []])
+    pg.resize_dsm(2, False)
+    print('After reverting expansion: ')
+    pg.print_map_size()
+    pg.print_path([[], []])
+    """
+    dsm_ = [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]]
+    for x in range(len(dsm_)):
+        print(dsm_[x])
+
+    _map_side *= multi
+    new_dsm = [[0 for j in range(self._map_side)] for i in range(self._map_side)]
     for x in range(0, len(new_dsm)):
         for y in range(0, len(new_dsm)):
-            new_dsm[x][y] = dsm[int(x / 4)][int(y / 4)]
-    print(f"Initiation time: {time.time() - t}")
-    t = time.time()
-    print_path(new_dsm, [])
-    print(f"Print time: {time.time() - t}")
+            new_dsm[x][y] = self._dsm[int(x / multi)][int(y / multi)]
+    self._pixel_dist = self._pixel_dist / multi
+
+    # pg2 = PathGenerator(50, 100, dsm_)
+    # pg2.print_path()
+
+
     """
     Inputpath = 'C:/Users/alond/PycharmProjects/DSM_Paths'
     FileName = 'dsm_binary'
