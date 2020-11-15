@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import math
 import cv2
 import time
-from DsmParser import create_map
+from DSM_Paths.DsmParser import create_map
 
 
 class PathGenerator:
@@ -35,7 +35,7 @@ class PathGenerator:
             self._map_side = len(dsm)
         else:
             self._dsm = None
-            print('Need to initiate map before we start')
+            print('Need to initiate map using init_map before we start.')  # commit check
 
     def init_map(self, input_path=None, file_name=None, saveTIF=True, pixel_dist=2):
         if input_path is not None and file_name is not None:
