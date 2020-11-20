@@ -25,7 +25,7 @@ class PathGenerator:
         dsm : List of Lists of floats
             The DSM map.
         pixel_dist : float
-            The distance of a pixel's width in real life.
+            The distance of a pixel's width in real life (in meters).
         """
         self._velocity = velocity
         self._flight_height = flight_height
@@ -78,14 +78,12 @@ class PathGenerator:
                         for j in range(0, multi):
                             x_idx = x*multi + i
                             y_idx = y*multi + j
-                            val = 0 if x_idx >= prev_side or y_idx >= prev_side else self._dsm[x_idx][y_idx]
+                            val = -np.inf if x_idx >= prev_side or y_idx >= prev_side else self._dsm[x_idx][y_idx]
                             maxi = max(maxi, val)
                     new_dsm[x][y] = maxi
             self._pixel_dist = self._pixel_dist*multi
 
-        # self._dsm.clear()
         self._dsm = new_dsm
-        assert self._map_side == len(self._dsm)
         self._map_side = len(self._dsm)
 
     def print_map_size(self):
@@ -194,7 +192,7 @@ if __name__ == "__main__":
     print('Initial map: ')
     # for x in range(len(pg._dsm)):
     #    print(pg._dsm[x])
-    pg.print_path([[], []])
+    pg.print_path([[100, 200, 300], [100, 200, 300]])
     pg.resize_dsm(2)
     print('After expansion: ')
     # for x in range(len(pg._dsm)):
