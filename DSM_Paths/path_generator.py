@@ -282,7 +282,7 @@ if __name__ == "__main__":
     FileName = 'dsm_binary'
     dsm_ = create_map(Inputpath, FileName)
     pg = PathGenerator(velocity=50, flight_height=-250, dsm=dsm_, pixel_dist=2)
-    pg.gen_paths(flag='d', constrain=1000, path_type='prob', start_location=[150, 150], to_print=True, epsilon=2)
+    pg.gen_paths(flag='d', constrain=1000, path_type='a_star', start_location=[150, 150], to_print=True, epsilon=2)
 
 
 
