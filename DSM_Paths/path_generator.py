@@ -2,9 +2,10 @@ import os
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import random
 import math
-import cv2
 import time
+from pathlib import Path
 from DSM_Paths.DsmParser import create_map
 
 
@@ -12,7 +13,7 @@ class PathGenerator:
     """
     This is the main class. To create paths, create an instance of it with the desired parameters.
     """
-    def __init__(self, velocity, flight_height, dsm=None, pixel_dist=2):
+    def __init__(self, velocity, flight_height, dsm=None, pixel_dist=2.0):
         """
         Outputs the map with the given path on it.
 
@@ -91,15 +92,84 @@ class PathGenerator:
         print(f'len(self._dsm): {len(self._dsm)}')
         print(f'len(self._dsm[0]): {len(self._dsm[0])}')
 
-    def gen_path_dist(self):
-        # TODO: implement
+    def __inside_array(self, pos):
+        return self._dsm.shape[0] > pos[0] >= 0 and self._dsm.shape[1] > pos[1] >= 0
+
+    def __gen_path_probability(self, start_location: list, max_len: float):
+        cur_pos = start_location
+        path = [cur_pos]
+        left_len = max_len
+        directions = [[-1, 0], [0, -1], [1, 0], [0, 1], [1, 1], [1, -1], [-1, 1], [-1, -1]]
+        last_move = 0
+        while True:
+            new_pos_option = [sum(x) for x in zip(directions[last_move], cur_pos)]
+            if self.__inside_array(new_pos_option) and self._dsm[new_pos_option[0]][new_pos_option[1]] >= self._flight_height\
+                    and random.randrange(0, 100) <= 98:
+                path += [new_pos_option]
+                left_len -= self._pixel_dist
+                cur_pos = new_pos_option
+            else:
+                while True:
+                    move = random.randrange(0, 8)
+                    sum_temp = [sum(x) for x in zip(directions[last_move], directions[move])]
+                    if sum_temp != [0, 0]:
+                        break
+                last_move = move
+            if left_len < 0:
+                path.pop()
+                return path
         pass
 
-    def gen_path_time(self):
-        # TODO: implement
-        pass
+    def __h(self, location, goal, epsilon):
+        return (abs(goal[0] - location[0]) + abs(goal[1] - location[1])) * self._pixel_dist * epsilon
 
-    def gen_paths(self, flag, constrain, num=1, to_print=False):
+    def a_star_epsilon(self, start_location, end_location, epsilon):
+        open_set = {tuple(start_location)}
+        cameFrom = {}
+        g_score = {tuple(start_location): 0}
+        f_score = {tuple(start_location): self.__h(start_location, end_location, epsilon)}
+
+        while bool(open_set):
+            current = min(open_set, key=lambda x: f_score.get(x, float('inf')))
+            if current == tuple(end_location):
+                path = [list(current)]
+                while current in cameFrom.keys():
+                    current = cameFrom.get(current)
+                    path.insert(0, list(current))
+                return path
+
+            open_set.remove(current)
+            directions = [[-1, 0], [1, 0], [0, -1], [0, 1]]
+            for dir in directions:
+                neighbor = [sum(x) for x in zip(dir, list(current))]
+                if self.__inside_array(neighbor):
+                    #TODO: change later to <=
+                    if self._dsm[neighbor[0]][neighbor[1]] >= self._flight_height:
+                        tentative_g_score = g_score.get(current, float('inf')) + self._pixel_dist
+                        if tentative_g_score < g_score.get(tuple(neighbor), float('inf')):
+                            cameFrom[tuple(neighbor)] = current
+                            g_score[tuple(neighbor)] = tentative_g_score
+                            f_score[tuple(neighbor)] = g_score.get(tuple(neighbor), float('inf')) + self.__h(neighbor, end_location, epsilon)
+                            if tuple(neighbor) not in open_set:
+                                open_set.add(tuple(neighbor))
+        return []
+
+    def __gen_path_a_star_epsilon(self, start_location: list, max_len: float, epsilon: float = 1.0):
+        path = []
+        cur_start = start_location
+        while True:
+            while True:
+                rand_x = random.randrange(self._dsm.shape[0])
+                rand_y = random.randrange(self._dsm.shape[1])
+                #TODO: change later to <=
+                if self._dsm[rand_x][rand_y] >= self._flight_height:
+                    break
+            path += self.a_star_epsilon(cur_start, [rand_x, rand_y], epsilon)
+            cur_start = path[-1]
+            if len(path) * self._pixel_dist > max_len:
+                return path[:int(max_len / self._pixel_dist)]
+
+    def gen_paths(self, flag, constrain, path_type, start_location, num=1, to_print=False, epsilon=1.0):
         """
                 Enhancing the dsm resolution by the given multiplier
                  Parameters
@@ -111,12 +181,31 @@ class PathGenerator:
                     in seconds constrained paths.
                 num : int
                     The number of paths wanted.
+                path_type
+                    The kind of path generating algorithm used.
+                    Will hold either 'prob' for probability random path and 'a_star' for a_star generated path to random spots.
                 to_print : bool
                     Pass True to print the resulting paths over the dsm map.
         """
+
         if flag != 'd' and flag != 't':
             print('Wrong flag option!')
             return
+        if constrain <= 0:
+            print('Constrain should be positive')
+            return
+        orig_pixel_dist = self._pixel_dist
+        if flag == 't':
+            self._pixel_dist = orig_pixel_dist * self._velocity
+        if path_type == 'prob':
+            path = self.__gen_path_probability(start_location= start_location, max_len=constrain)
+        elif path_type == 'a_star':
+            path = self.__gen_path_a_star_epsilon(start_location= start_location, max_len= constrain, epsilon= epsilon)
+        else:
+            print('Path type is not one of the correct path generating ways')
+            return
+        self.print_path(path)
+        self._pixel_dist = orig_pixel_dist
 
     def print_path(self, points=None, path_color='r', path_style='--'):
         """
@@ -137,11 +226,16 @@ class PathGenerator:
         Examples for path_color and path_style can be found in the plot description
         here: https://matplotlib.org/2.1.1/api/_as_gen/matplotlib.pyplot.plot.html
         """
+        x_list = []
+        y_list = []
+        for point in points:
+            x_list += [point[0]]
+            y_list += [point[1]]
         plot_style = path_color + path_style
         plt.figure(1)
         im = plt.imshow(self._dsm)
         if points is not None and len(points) >= 2:
-            plt.plot(points[0], points[1], plot_style)
+            plt.plot(y_list, x_list, plot_style)
         plt.show()
 
 
@@ -184,28 +278,12 @@ def expansion_test():
 
 
 if __name__ == "__main__":
-    Inputpath = 'C:/Users/alond/PycharmProjects/DSM_Paths'
+    Inputpath = Path(__file__).parent.absolute()
     FileName = 'dsm_binary'
     dsm_ = create_map(Inputpath, FileName)
-    # dsm_ = np.array([[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]])
-    pg = PathGenerator(50, 100, dsm_)
-    print('Initial map: ')
-    # for x in range(len(pg._dsm)):
-    #    print(pg._dsm[x])
-    pg.print_path([[100, 200, 300], [100, 200, 300]])
-    pg.resize_dsm(2)
-    print('After expansion: ')
-    # for x in range(len(pg._dsm)):
-    #    print(pg._dsm[x])
-    pg.print_path([[], []])
-    pg.resize_dsm(2, False)
-    print('After reverting expansion: ')
-    # for x in range(len(pg._dsm)):
-    #    print(pg._dsm[x])
-    pg.print_path([[], []])
+    pg = PathGenerator(velocity=50, flight_height=-250, dsm=dsm_, pixel_dist=2)
+    pg.gen_paths(flag='d', constrain=1000, path_type='a_star', start_location=[150, 150], to_print=True, epsilon=2)
 
-    # pg2 = PathGenerator(50, 100, dsm_)
-    # pg2.print_path()
 
 
     """
