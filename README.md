@@ -13,15 +13,14 @@ The Parser is found in DsmParser.py and in order to run it you should use the fo
 Inputpath = Path(__file__).parent.absolute()
 FileName = 'dsm_binary'
 dsm_ = create_map(Inputpath, FileName)
-'''
+```
 make sure your .bin file is under workingfolder/BinFiles/
 
 ### 2. Create an Instance of the PathGenerator:
 
-'''python
+```python
 pg = PathGenerator(velocity=, flight_height=, dsm=_dsm, pixel_dist=)
-'''
-
+```
 At this point you need to choose the flight parameters:
 * velocity: The velocity of the drone
 * flight_height: the height of the drone flight
@@ -33,10 +32,9 @@ TODO: Alon please add...
 
 ### 4. Creating The Path:
 
-'''python
+```python
 pg.gen_paths(flag='d', constrain=1000, path_type='a_star', start_location=[150, 150], to_print=True, epsilon=2)
-'''
-
+```
 parameters:
 * flag: could be either 'd' for distance or 't' time meaning what kind of constrain we want for our path.
 * constrain: If we chose flag = 'd' the number inserted here will be the limit for distance the drone will go. If we chose flag = 't' so constraing will be the time limit for the drone path.
