@@ -11,7 +11,7 @@ from DSM_Paths.DsmParser import create_map
 
 class PathGenerator:
     """
-    This is the main class. To create paths, create an instance of it with the desired parameters.
+    This is the main class. To create paths, create an instance of a PathGenerator with the desired parameters.
     """
     def __init__(self, velocity, flight_height, dsm=None, pixel_dist=2.0):
         """
@@ -39,6 +39,10 @@ class PathGenerator:
             print('Need to initiate map using init_map before we start.')  # commit check
 
     def init_map(self, input_path=None, file_name=None, saveTIF=True, pixel_dist=2):
+        """
+        This method loads the DSM map to an instance using a binary file representing it. The binary file must be in
+        a
+        """
         if input_path is not None and file_name is not None:
             self._dsm = create_map(input_path, file_name, saveTIF)
             self._map_side = len(self._dsm)
@@ -59,7 +63,7 @@ class PathGenerator:
         Decreasing resolution might cause information loss.
         """
         if multi <= 0:
-            return
+            return  # Not allowing a negative enhance multiplier.
         if enhance:
             self._map_side *= multi
             new_dsm = [[0 for j in range(self._map_side)] for i in range(self._map_side)]
