@@ -45,9 +45,9 @@ def DSMParcer(Inputpath, Filename, SaveTIF):
         return lat_org, long_org, alt_org, x_org, y_org, z_org, Wx.item(), Wy.item(), dWx.item(), dWy.item(), dsm
 
 
-def create_map(Inputpath, Filename, SaveTIF=True, to_print=False):
-    lat_org, long_org, alt_org, x_org, y_org, z_org, Wx, Wy, dWx, dWy, dsm = DSMParcer(Inputpath, Filename, SaveTIF)
-    if to_print :
+def create_map(input_path, file_name, save_tif=False, to_print=False):
+    lat_org, long_org, alt_org, x_org, y_org, z_org, Wx, Wy, dWx, dWy, dsm = DSMParcer(input_path, file_name, save_tif)
+    if to_print:
         print(f'{lat_org},{long_org},{alt_org}')
         print(f'{x_org}{y_org}{z_org}')
         print(f'{Wx},{Wy},{dWx},{dWy}')
@@ -56,12 +56,3 @@ def create_map(Inputpath, Filename, SaveTIF=True, to_print=False):
         plt.show()
     return dsm
 
-
-
-
-"""
-x = [100, 200, 200]
-y = [100, 100, 250]
-points = [(100, 100), (200, 100), (200, 250)]
-plt.plot(x, y, 'r--')
-"""

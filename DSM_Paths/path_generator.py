@@ -38,7 +38,7 @@ class PathGenerator:
             self._dsm = None
             print('Need to initiate map using init_map before we start.')
         # These fields are used to determine the boundaries of the map (where the object appear).
-        self._x_lower_bound, self._y_lower_bound, self._x_upper_bound, self._y_upper_bound = self._eliminate_map_sides()
+        self._x_lower_bound, self._y_lower_bound, self._x_upper_bound, self._y_upper_bound = self._bound_map_main_area()
 
     def init_map(self, input_path=None, file_name=None, save_tif=False, pixel_dist=2):
         """
@@ -52,7 +52,7 @@ class PathGenerator:
             self._map_side = len(self._dsm)
             self._pixel_dist = pixel_dist
         # Updating the map boundary values.
-        self._x_lower_bound, self._y_lower_bound, self._x_upper_bound, self._y_upper_bound = self._eliminate_map_sides()
+        self._x_lower_bound, self._y_lower_bound, self._x_upper_bound, self._y_upper_bound = self._bound_map_main_area()
 
     def gen_paths(self, flag, constrain, path_type, start_location=None, path_num=1, to_print=False, epsilon=1.0):
         """
@@ -200,7 +200,7 @@ class PathGenerator:
         else:
             print('Need to initiate the dsm map using init_map before we show it\'s size.')
 
-    def _eliminate_map_sides(self):
+    def _bound_map_main_area(self):
         """ Assuming the given map is a square matrix. This method returns the map's boundaries so we  can look at the
         map without leading zero valued side rows or columns. For example:
                                            0000000000
@@ -248,9 +248,7 @@ class PathGenerator:
         last_move = 0
         while True:
             new_pos_option = [sum(x) for x in zip(directions[last_move], cur_pos)]
-            # Note: changed __inside_array -> __in_map_bound
-            if self._can_fly_over_in_bound(new_pos_option) and \
-                    random.randrange(0, 100) <= 98:
+            if self._can_fly_over_in_bound(new_pos_option) and random.randrange(0, 100) <= 96:
                 path += [new_pos_option]
                 left_len -= self._pixel_dist
                 cur_pos = new_pos_option
@@ -265,17 +263,24 @@ class PathGenerator:
                 path.pop()
                 return path
 
-    # Alon's Note: Should be a static method in my opinion.
+    # Alon's Note: Should be a static method in my opinion. Look at the to-do comment.
     def __h(self, location, goal, epsilon):  # TODO: Why do we need to multiply by self._pixel_dist * epsilon?
+        """The heuristic function we used - Manhattan distance."""
         return (abs(goal[0] - location[0]) + abs(goal[1] - location[1])) * self._pixel_dist * epsilon
 
     def a_star_epsilon(self, start_location, end_location, epsilon):
+        """ Alon's note: this is regular A-star, epsilon has no meaning here. We need to choose a random next node
+        from a set containing node's with f <= (1+epsilon)min_f and not the node with the smallest f value.
+        We can leave it as is (A-Star algorithm) and just change the name and delete epsilon. The results are good
+        with the regular algorithm you implemented.
+        """
         open_set = {tuple(start_location)}
         cameFrom = {}
         g_score = {tuple(start_location): 0}
         f_score = {tuple(start_location): self.__h(start_location, end_location, epsilon)}
 
         while bool(open_set):
+            # Alon's note: cool syntax can you explain what does lambda do?
             current = min(open_set, key=lambda x: f_score.get(x, float('inf')))
             if current == tuple(end_location):
                 path = [list(current)]
@@ -286,17 +291,20 @@ class PathGenerator:
 
             open_set.remove(current)
             directions = [[-1, 0], [1, 0], [0, -1], [0, 1]]
-            for dir in directions:
-                neighbor = [sum(x) for x in zip(dir, list(current))]
-                if self._in_map_bound(neighbor):  # Note: changed __inside_array -> __in_map_bound
-                    if self._can_fly_over(neighbor[0], neighbor[1]):
-                        tentative_g_score = g_score.get(current, float('inf')) + self._pixel_dist
-                        if tentative_g_score < g_score.get(tuple(neighbor), float('inf')):
-                            cameFrom[tuple(neighbor)] = current
-                            g_score[tuple(neighbor)] = tentative_g_score
-                            f_score[tuple(neighbor)] = g_score.get(tuple(neighbor), float('inf')) + self.__h(neighbor, end_location, epsilon)
-                            if tuple(neighbor) not in open_set:
-                                open_set.add(tuple(neighbor))
+            for direction in directions:  # Alon's note: dir is a built-in function so I changed dir -> direction
+                neighbor = [sum(x) for x in zip(direction, list(current))]
+                # Alon's note: changed __inside_array -> _can_fly_over_in_bound
+                if self._can_fly_over_in_bound(neighbor):
+                    tentative_g_score = g_score.get(current, float('inf')) + self._pixel_dist
+                    if tentative_g_score < g_score.get(tuple(neighbor), float('inf')):
+                        cameFrom[tuple(neighbor)] = current
+                        g_score[tuple(neighbor)] = tentative_g_score
+                        # Alon's note: Should'nt it be: f_score = *tentative_g_score* + h??
+                        f_score[tuple(neighbor)] = g_score.get(tuple(neighbor), float('inf')) + self.__h(neighbor,
+                                                                                                         end_location,
+                                                                                                         epsilon)
+                        if tuple(neighbor) not in open_set:
+                            open_set.add(tuple(neighbor))
         return []
 
     def __gen_path_a_star_epsilon(self, start_location: list, max_len: float, epsilon: float = 1.0):
@@ -314,6 +322,8 @@ class PathGenerator:
                 return path[:int(max_len / self._pixel_dist)]
 
     def _gen_random_point_under_constraints(self):
+        """This method return a random point in the map's main area (bounded in _bound_map_main_area)
+        whose height value is shorter then the flight's height."""
         while True:
             rand_x = random.randrange(self._x_lower_bound, self._x_upper_bound)
             rand_y = random.randrange(self._y_lower_bound, self._y_upper_bound)
@@ -321,10 +331,13 @@ class PathGenerator:
                 return [rand_x, rand_y]
 
     def _can_fly_over(self, pos_x, pos_y):
+        """This method checks if a position in the dsm map got height value larger then the drone's flight height"""
         # TODO: change later to <= when we understand the negative values in the dsm.
         return self._dsm[pos_x][pos_y] >= self._flight_height
 
     def _in_map_bound(self, pos):
+        """This method returns true if the position is in the maps main area (without the leading zero height areas
+        on the sides of the map)."""
         in_x_bound = self._x_upper_bound >= pos[0] >= self._x_lower_bound
         in_y_bound = self._y_upper_bound >= pos[1] >= self._y_lower_bound
         return in_x_bound and in_y_bound
@@ -439,5 +452,5 @@ if __name__ == "__main__":
     FileName = 'dsm_binary'
     dsm_ = create_map(Inputpath, FileName)
     pg = PathGenerator(velocity=50, flight_height=-250, dsm=dsm_, pixel_dist=2)
-    pg.gen_paths(flag='d', constrain=1000, path_type='prob', to_print=True, path_num=5, epsilon=2)
+    paths = pg.gen_paths(flag='d', constrain=1000, path_type='a_star', to_print=True, path_num=5, epsilon=2)
 
