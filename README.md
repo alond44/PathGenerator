@@ -25,7 +25,7 @@ def __init__(self, velocity, flight_height, dsm=None, pixel_dist=2.0)
 At this point you need to choose the flight parameters:
 * velocity: The velocity of the drone.
 * flight_height: the height of the drone flight.
-* dsm: the dsm map we have created at step 1. Note that we can pass a `None`{:.python} value and load the map using `init_map`{:.python} method after generating an instance.
+* dsm: the dsm map we have created at step 1. Note that we can pass a `None` value and load the map using `init_map` method after generating an instance.
 * pixel_dist: the distance between 2 pixels on the map.
 
 #### Usage Example
@@ -50,7 +50,7 @@ parameters:
 * flag: could be either 'd' for distance or 't' time meaning what kind of constrain we want for our path.
 * constrain: If we chose flag = 'd' the number inserted here will be the limit for distance the drone will go. If we chose flag = 't' so constraing will be the time limit for the drone path.
 * path_type: 'prob' or 'a_star' as will be explain in more details later- 'prob' creates a simple path using random walk in the map while 'a_star' create path using weighted a* algorithm between some randome sampled points.
-* start_location: The start location of the drone. If `None`{:.python} is passed a random one will be generated. 
+* start_location: The start location of the drone. If `None` is passed a random one will be generated. 
 * path_num: The number of paths we want to generate with these constraints. The default value is 1.
 * to_print: A boolean value indicating if we want the paths to be printed on the map.
 * epsilon: Only when using 'a_star'. epsilon should be >= 1.
