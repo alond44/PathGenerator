@@ -37,10 +37,9 @@ class PathGenerator:
         else:
             self._dsm = None
             print('Need to initiate map using init_map before we start.')
-        self._process_map()
+        self._process_map()  # TEMP
         # These fields are used to determine the boundaries of the map (where the object appear).
         self._x_lower_bound, self._y_lower_bound, self._x_upper_bound, self._y_upper_bound = self._bound_map_main_area()
-
 
     def init_map(self, input_path=None, file_name=None, save_tif=False, pixel_dist=2):
         """
@@ -53,7 +52,7 @@ class PathGenerator:
             self._dsm = create_map(input_path, file_name, save_tif)
             self._map_side = len(self._dsm)
             self._pixel_dist = pixel_dist
-        self._process_map()
+        self._process_map()  # TEMP
         # Updating the map boundary values.
         self._x_lower_bound, self._y_lower_bound, self._x_upper_bound, self._y_upper_bound = self._bound_map_main_area()
 
@@ -343,6 +342,7 @@ class PathGenerator:
     def _can_fly_over(self, pos_x, pos_y):
         """This method checks if a position in the dsm map got height value larger then the drone's flight height"""
         # TODO: change later to <= when we understand the negative values in the dsm.
+        # TEMP - changed need permanent fix for height values!
         return self._dsm[pos_x][pos_y] <= self._flight_height
 
     def _in_map_bound(self, pos):
@@ -376,7 +376,7 @@ class PathGenerator:
             return travel_time
         return 0
 
-    # TODO: get rid of this method.
+    # TODO: get rid of this method TEMP.
     def _process_map(self):
         zero_val = self._dsm[0][0]
         for i in range(len(self._dsm)):
@@ -385,6 +385,7 @@ class PathGenerator:
 
     @staticmethod
     def __is_zero(val):
+        # TEMP
         # return -2 <= int(val) + 243 <= 2
         return -2 <= int(val) <= 2
 
