@@ -37,8 +37,10 @@ class PathGenerator:
         else:
             self._dsm = None
             print('Need to initiate map using init_map before we start.')
+        self._process_map()
         # These fields are used to determine the boundaries of the map (where the object appear).
         self._x_lower_bound, self._y_lower_bound, self._x_upper_bound, self._y_upper_bound = self._bound_map_main_area()
+
 
     def init_map(self, input_path=None, file_name=None, save_tif=False, pixel_dist=2):
         """
@@ -51,6 +53,7 @@ class PathGenerator:
             self._dsm = create_map(input_path, file_name, save_tif)
             self._map_side = len(self._dsm)
             self._pixel_dist = pixel_dist
+        self._process_map()
         # Updating the map boundary values.
         self._x_lower_bound, self._y_lower_bound, self._x_upper_bound, self._y_upper_bound = self._bound_map_main_area()
 
@@ -84,24 +87,26 @@ class PathGenerator:
             if constrain <= 0:
                 print('Constrain should be positive')
                 return []
-            orig_pixel_dist = self._pixel_dist
+            pixel_cost = self._pixel_dist
             if flag == 't':
-                self._pixel_dist = orig_pixel_dist * self._velocity  # Note: time*velocity = distance -> t = d/v
+                # self._pixel_dis = orig_pixel_dist / self._velocity  # Note: time*velocity = distance -> t = d/v
+                pixel_cost /= self._velocity
             paths = []
             if path_type == 'prob':
                 for i in range(path_num):
                     if need_new_start_pos:
                         start_location = self._gen_random_point_under_constraints()
-                    paths += [self.__gen_path_probability(start_location=start_location, max_len=constrain)]
+                    paths += [self.__gen_path_probability(start_location=start_location, max_cost=constrain,
+                                                          pixel_cost=pixel_cost)]
             elif path_type == 'a_star':
                 for i in range(path_num):
                     if need_new_start_pos:
                         start_location = self._gen_random_point_under_constraints()
-                    paths += [self.__gen_path_a_star_epsilon(start_location=start_location, max_len=constrain, epsilon=epsilon)]
+                    paths += [self.__gen_path_a_star_epsilon(start_location=start_location, max_cost=constrain,
+                                                             pixel_cost=pixel_cost, epsilon=epsilon)]
             else:
                 print('Path type is not one of the correct path generating ways')
                 return []
-            self._pixel_dist = orig_pixel_dist
             if to_print:
                 for path in paths:
                     self.print_path(path)
@@ -240,17 +245,25 @@ class PathGenerator:
     def __inside_array(self, pos):
         return self._dsm.shape[0] > pos[0] >= 0 and self._dsm.shape[1] > pos[1] >= 0
 
-    def __gen_path_probability(self, start_location: list, max_len: float):
+    def __gen_path_probability(self, start_location: list, max_cost: float, pixel_cost: float):
         cur_pos = start_location
         path = [cur_pos]
-        left_len = max_len
         directions = [[-1, 0], [0, -1], [1, 0], [0, 1], [1, 1], [1, -1], [-1, 1], [-1, -1]]
         last_move = 0
+        path_cost = 0
         while True:
             new_pos_option = [sum(x) for x in zip(directions[last_move], cur_pos)]
             if self._can_fly_over_in_bound(new_pos_option) and random.randrange(0, 100) <= 96:
                 path += [new_pos_option]
-                left_len -= self._pixel_dist
+
+                x_dist_squared = math.pow(new_pos_option[0] - cur_pos[0], 2)
+                y_dist_squared = math.pow(new_pos_option[1] - cur_pos[1], 2)
+                path_cost += math.sqrt(x_dist_squared + y_dist_squared) * pixel_cost
+
+                if abs(max_cost - path_cost) < pixel_cost:
+                    path.pop()
+                    return path
+
                 cur_pos = new_pos_option
             else:
                 while True:
@@ -259,9 +272,6 @@ class PathGenerator:
                     if sum_temp != [0, 0]:
                         break
                 last_move = move
-            if left_len < 0:
-                path.pop()
-                return path
 
     # Alon's Note: Should be a static method in my opinion. Look at the to-do comment.
     def __h(self, location, goal, epsilon):  # TODO: Why do we need to multiply by self._pixel_dist * epsilon?
@@ -275,7 +285,7 @@ class PathGenerator:
         with the regular algorithm you implemented.
         """
         open_set = {tuple(start_location)}
-        cameFrom = {}
+        came_from = {}
         g_score = {tuple(start_location): 0}
         f_score = {tuple(start_location): self.__h(start_location, end_location, epsilon)}
 
@@ -284,8 +294,8 @@ class PathGenerator:
             current = min(open_set, key=lambda x: f_score.get(x, float('inf')))
             if current == tuple(end_location):
                 path = [list(current)]
-                while current in cameFrom.keys():
-                    current = cameFrom.get(current)
+                while current in came_from.keys():
+                    current = came_from.get(current)
                     path.insert(0, list(current))
                 return path
 
@@ -297,7 +307,7 @@ class PathGenerator:
                 if self._can_fly_over_in_bound(neighbor):
                     tentative_g_score = g_score.get(current, float('inf')) + self._pixel_dist
                     if tentative_g_score < g_score.get(tuple(neighbor), float('inf')):
-                        cameFrom[tuple(neighbor)] = current
+                        came_from[tuple(neighbor)] = current
                         g_score[tuple(neighbor)] = tentative_g_score
                         # Alon's note: Should'nt it be: f_score = *tentative_g_score* + h??
                         f_score[tuple(neighbor)] = g_score.get(tuple(neighbor), float('inf')) + self.__h(neighbor,
@@ -307,7 +317,7 @@ class PathGenerator:
                             open_set.add(tuple(neighbor))
         return []
 
-    def __gen_path_a_star_epsilon(self, start_location: list, max_len: float, epsilon: float = 1.0):
+    def __gen_path_a_star_epsilon(self, start_location: list, max_cost: float, pixel_cost: float, epsilon: float = 1.0):
         """
         This method creates a path from the given starting location to a randomized end
         location with the length of max_len.
@@ -318,8 +328,8 @@ class PathGenerator:
             next_goal = self._gen_random_point_under_constraints()  # Note: replaced the loop with this method.
             path += self.a_star_epsilon(cur_start, next_goal, epsilon)
             cur_start = path[-1]
-            if len(path) * self._pixel_dist > max_len:
-                return path[:int(max_len / self._pixel_dist)]
+            if len(path) * pixel_cost > max_cost:
+                return path[:int(max_cost / pixel_cost)]
 
     def _gen_random_point_under_constraints(self):
         """This method return a random point in the map's main area (bounded in _bound_map_main_area)
@@ -333,7 +343,7 @@ class PathGenerator:
     def _can_fly_over(self, pos_x, pos_y):
         """This method checks if a position in the dsm map got height value larger then the drone's flight height"""
         # TODO: change later to <= when we understand the negative values in the dsm.
-        return self._dsm[pos_x][pos_y] >= self._flight_height
+        return self._dsm[pos_x][pos_y] <= self._flight_height
 
     def _in_map_bound(self, pos):
         """This method returns true if the position is in the maps main area (without the leading zero height areas
@@ -345,9 +355,38 @@ class PathGenerator:
     def _can_fly_over_in_bound(self, pos):
         return self._in_map_bound(pos) and self._can_fly_over(pos[0], pos[1])
 
+    def calc_path_distance(self, path: list):
+        if path is not None:
+            distance = 0
+            for i in range(len(path) - 1):
+                x_squared = math.pow(path[i+1][0] - path[i][0], 2)
+                y_squared = math.pow(path[i+1][1] - path[i][1], 2)
+                distance += math.sqrt(x_squared + y_squared)*self._pixel_dist
+            return distance
+        return 0
+
+    def calc_path_travel_time(self, path: list):
+        if path is not None:
+            travel_time = 0
+            for i in range(len(path) - 1):
+                x_squared = math.pow(path[i+1][0] - path[i][0], 2)
+                y_squared = math.pow(path[i+1][1] - path[i][1], 2)
+                distance = math.sqrt(x_squared + y_squared)*self._pixel_dist
+                travel_time += distance / self._velocity
+            return travel_time
+        return 0
+
+    # TODO: get rid of this method.
+    def _process_map(self):
+        zero_val = self._dsm[0][0]
+        for i in range(len(self._dsm)):
+            for j in range(len(self._dsm)):
+                self._dsm[i][j] = abs(self._dsm[i][j] - zero_val)
+
     @staticmethod
     def __is_zero(val):
-        return -2 <= int(val) + 243 <= 2
+        # return -2 <= int(val) + 243 <= 2
+        return -2 <= int(val) <= 2
 
 
 def expansion_test():
@@ -444,13 +483,77 @@ def zero_value_test():
     print(int(dsm_[0][0]) == -243)
 
 
+def path_cost_test_1(dsm, flag, path_type, desired_cost=1000, path_number=100, print_paths=False):
+    if (flag == 'd' or flag == 't') and (path_type == 'a_star' or path_type == 'prob'):
+        print(f"\n************** Path Length Test 1  **************")
+        print(f"                Path Type: \'{path_type}\'\n")
+        print(f"Ran with desired_cost = {desired_cost} and path_number = {path_number}")
+        pg = PathGenerator(velocity=50, flight_height=50, dsm=dsm, pixel_dist=2)
+        paths = pg.gen_paths(flag=flag, constrain=desired_cost, path_type=path_type, to_print=print_paths,
+                             path_num=path_number, epsilon=2)
+
+        cost_sum = 0
+        error_sum = 0
+        for i in range(len(paths)):
+            if flag == 'd':
+                path_cost = pg.calc_path_distance(paths[i])
+            else:
+                path_cost = pg.calc_path_travel_time(paths[i])
+            cost_sum += path_cost
+            error_sum += abs(desired_cost - path_cost)
+        avg_distance = cost_sum / path_number
+        avg_error = error_sum / path_number
+        if flag == 'd':
+            cost_type = 'distance'
+            unit = 'meters'
+        else:
+            cost_type = 'time'
+            unit = 'meters per second'
+        print(f"The average {cost_type} of a path is: {avg_distance} {unit}")
+        print(f"The average error is: {avg_error}")
+    else:
+        print("Wrong flag or path type value")
+
+
+def path_generating_time_test(dsm, flag, path_type, desired_cost=1000, path_number=100, print_paths=False):
+    if (flag == 'd' or flag == 't') and (path_type == 'a_star' or path_type == 'prob'):
+        print(f"\n************** Path Generating Time Test  **************")
+        print(f"                 Path Type: \'{path_type}\'\n")
+        print(f"Ran with desired_cost = {desired_cost} and path_number = {path_number}")
+
+        pg = PathGenerator(velocity=50, flight_height=50, dsm=dsm, pixel_dist=2)
+        start_time = time.time()
+        paths = pg.gen_paths(flag=flag, constrain=desired_cost, path_type=path_type, to_print=print_paths,
+                             path_num=path_number, epsilon=2)
+        total_time = time.time() - start_time
+
+        avg_time = total_time / path_number
+        print(f"The average calculation time of a path of type \'{path_type}\' is: {avg_time} seconds")
+    else:
+        print("Wrong flag or path type value")
+
+
 if __name__ == "__main__":
-    # zero_value_test()
-    # expansion_test_2()
 
     Inputpath = Path(__file__).parent.absolute()
     FileName = 'dsm_binary'
     dsm_ = create_map(Inputpath, FileName)
-    pg = PathGenerator(velocity=50, flight_height=-250, dsm=dsm_, pixel_dist=2)
-    paths = pg.gen_paths(flag='d', constrain=1000, path_type='a_star', to_print=True, path_num=5, epsilon=2)
+
+    path_cost_test_1(dsm_, flag='t', path_type='prob', desired_cost=50, print_paths=True, path_number=2)
+    path_cost_test_1(dsm_, flag='t', path_type='a_star', desired_cost=50, print_paths=True, path_number=2)
+
+
+'''
+    path_cost_test_1(dsm_, 'd', 'prob')
+    path_cost_test_1(dsm_, 'd', 'a_star')
+    path_cost_test_1(dsm_, 't', 'a_star')
+    path_cost_test_1(dsm_, 't', 'a_star')
+
+    path_generating_time_test(dsm_, 'd', 'prob')
+    path_generating_time_test(dsm_, 'd', 'a_star')
+
+    path_generating_time_test(dsm_, 't', 'prob')
+    path_generating_time_test(dsm_, 't', 'a_star')
+'''
+
 
