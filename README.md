@@ -1,7 +1,7 @@
 # Path Generator
 
 ## Introduction
-In the following explanation we are going to explain how to simply use our Path Generating system in order to create path for the drone in the city, change the different parameters and get the path. After that we will show some result that we generated and explaing the pros and cons of the 2 methods we chose to code.
+In the following explanation we'll demonstrate how to use our Path Generating system in order to create paths for the drone over the city, adjust the different parameters to meet different flight requirements and get the outputed paths. After that we'll show some result generated using our code and explaing the pros and cons of the two methods we implemented.
 
 ## How to Use
 All of our code is inside a python class named PathGenerator. In order to use it you should:
@@ -14,7 +14,9 @@ Inputpath = Path(__file__).parent.absolute()
 FileName = 'dsm_binary'
 dsm_ = create_map(Inputpath, FileName)
 ```
-make sure your .bin file is under workingfolder/BinFiles/
+Make sure your .bin file is under workingfolder/BinFiles/
+
+Note: The folder 'BinFiles' does not have to be inside your working folder. The other option is to keep the dsm binary file in a folder named 'BinFiles' in a different folder ('Files' for example) and pass that folder's absolute path as 'Inputpath' to 'create_map'.
 
 ### 2. Create an Instance of the PathGenerator:
 
@@ -23,10 +25,10 @@ def __init__(self, velocity, flight_height, dsm=None, pixel_dist=2.0)
 ```
 
 At this point you need to choose the flight parameters:
-* velocity: The velocity of the drone.
-* flight_height: the height of the drone flight.
-* dsm: the dsm map we have created at step 1. Note that we can pass a `None` value and load the map using `init_map` method after generating an instance.
-* pixel_dist: the distance between 2 pixels on the map.
+* velocity: The drone's velocity (in meters per second).
+* flight_height: The flight's altitude (in meters).
+* dsm: The dsm map we have created at step 1. Note we can pass the default value (`None`) and load the map using the `init_map` method after generating an instance.
+* pixel_dist: The distance of a pixel's width in real life (in meters).
 
 #### Usage Example
 
@@ -35,7 +37,7 @@ pg = PathGenerator(velocity=50, flight_height=150, dsm=_dsm, pixel_dist=2)
 ```
 
 ### 3. Change Map Resolution:
-TODO: Alon please add...
+We've created a way to get more specific with the drone's location by dividing each pixel to a few more so each pixel will represent a smalller real world tile with the same height value. This method can also reverse its affect by passing a False value ... TODO: add ... merge adjecent pixels to be one with the height of the maximum height of the united pixels.
 
 ### 4. Creating Paths:
 
