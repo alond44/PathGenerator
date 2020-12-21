@@ -157,7 +157,7 @@ class PathGenerator:
         multiplier : int
             The enhance multiplier. Must be > 0.
         enhance : bool
-            True for enhancing and false for decrease resolution.
+            True for enhancing and False for decrease resolution.
 
          Notes
         ---------
