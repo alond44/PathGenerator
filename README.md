@@ -37,7 +37,21 @@ pg = PathGenerator(velocity=50, flight_height=150, dsm=_dsm, pixel_dist=2)
 ```
 
 ### 3. Change Map Resolution:
-We've created a way to get more specific with the drone's location by dividing each pixel to a few more so each pixel will represent a smalller real world tile with the same height value. This method can also reverse its affect by passing a False value ... TODO: add ... merge adjecent pixels to be one with the height of the maximum height of the united pixels.
+
+```python
+def resize_dsm(self, multiplier, enhance=True)
+```
+
+The parameters purpose:
+* multiplier: The enhance multiplier. Must be > 0. Passing a negative value will cause the method to have no effect.
+* enhance: True for enhancing and False for decrease resolution.
+
+We've created a way to get more specific with the drone's location by dividing each pixel to a few more so each pixel will represent a smalller real world tile with the same height value.
+For example: the first of the following images represents a single pixel and the second represents that same pixel after calling `pg.resize(3, True)` resulting it to split into nine different pixels with a third of a real life width and ninth of the area.
+
+
+
+This method can also reverse its affect by passing a False value ... TODO: add ... merge adjecent pixels to be one with the height of the maximum height of the united pixels.
 
 ### 4. Creating Paths:
 
