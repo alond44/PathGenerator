@@ -190,6 +190,9 @@ class PathGenerator:
                 self._pixel_dist = prev_side*self._pixel_dist/self._map_side
             self._dsm = new_dsm
             self._map_side = len(self._dsm)
+            # These fields are used to determine the boundaries of the map (where the object appear).
+            self._x_lower_bound, self._y_lower_bound, self._x_upper_bound, self._y_upper_bound = \
+                self._bound_map_main_area()
         else:
             print('Need to initiate the dsm map using init_map before we resize it.')
 
