@@ -47,7 +47,7 @@ def map_zoom_in(self, multiplier: int)
 * multiplier: The enhance multiplier. Must be > 0. Passing a negative value will cause the method to have no effect.
 
 We've created a way to get more specific with the drone's location by dividing each pixel to a few more so each pixel will represent a smalller real world tile with the same height value.
-For example: the first of the following images represents a single pixel and the second represents that same pixel after calling `pg.resize(2, True)` resulting it to split into four different pixels that represent half of the width and fourth of the area.
+For example: the first of the following images represents a single pixel and the second represents that same pixel after calling `pg.map_zoom_in(2, True)` resulting it to split into four different pixels that represent half of the width and fourth of the area.
 
 
 ![alt text](https://github.com/alond44/PathGenerator/blob/main/Ilustrations/single_pixel.png "Pixel Before Zoom In")
