@@ -12,7 +12,7 @@ The Parser is found in DsmParser.py and in order to run it you should use the fo
 ```python
 Inputpath = Path(__file__).parent.absolute()
 FileName = 'dsm_binary'
-dsm_ = create_map(Inputpath, FileName)
+_dsm = create_map(Inputpath, FileName)
 ```
 Make sure your .bin file is under workingfolder/BinFiles/
 
@@ -39,21 +39,20 @@ pg = PathGenerator(velocity=50, flight_height=150, dsm=_dsm, pixel_dist=2)
 ### 3. Change Map Resolution (Optional):
 
 ```python
-def resize_dsm(self, multiplier, enhance=True)
+def map_zoom_in(self, multiplier: int)
 ```
 
-The parameters purpose:
 * multiplier: The enhance multiplier. Must be > 0. Passing a negative value will cause the method to have no effect.
-* enhance: True for enhancing and False for decrease resolution.
 
 We've created a way to get more specific with the drone's location by dividing each pixel to a few more so each pixel will represent a smalller real world tile with the same height value.
 For example: the first of the following images represents a single pixel and the second represents that same pixel after calling `pg.resize(2, True)` resulting it to split into four different pixels that represent half of the width and fourth of the area.
 
-
-
 This usage has some positive and negative consequences:
-* The drone's location is not as spacific (because every pixel represent a larger real life area). // TODO: check if affects on the error and show results.
-* The computation time shortens. // TODO: check and show results.
+* + The drone's location is more spacific (as every pixel represents a smaller real life area). 
+* + The difference between the given constraints and the outputed path's cost (distance or time) is smaller. // TODO: check if affects on the error and show results. 
+* - The computation time lengthen. // TODO: check and show results.
+
+
 
 Another usage of resize_dsm is achieved by passing 
 This method can also reverse its affect by passing a False value with the same multiplier value. by passing a false flag the method merge adjecent pixels to be one with the height of the maximum height of the united pixels. This option can be run without enhancing first, however calling resize with a false enhance flag comes with few consequences:
