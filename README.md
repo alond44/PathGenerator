@@ -36,7 +36,7 @@ At this point you need to choose the flight parameters:
 pg = PathGenerator(velocity=50, flight_height=150, dsm=_dsm, pixel_dist=2)
 ```
 
-### 3. Change Map Resolution:
+### 3. Change Map Resolution (Optional):
 
 ```python
 def resize_dsm(self, multiplier, enhance=True)
@@ -47,11 +47,19 @@ The parameters purpose:
 * enhance: True for enhancing and False for decrease resolution.
 
 We've created a way to get more specific with the drone's location by dividing each pixel to a few more so each pixel will represent a smalller real world tile with the same height value.
-For example: the first of the following images represents a single pixel and the second represents that same pixel after calling `pg.resize(3, True)` resulting it to split into nine different pixels with a third of a real life width and ninth of the area.
+For example: the first of the following images represents a single pixel and the second represents that same pixel after calling `pg.resize(2, True)` resulting it to split into four different pixels that represent half of the width and fourth of the area.
 
 
 
-This method can also reverse its affect by passing a False value ... TODO: add ... merge adjecent pixels to be one with the height of the maximum height of the united pixels.
+This usage has some positive and negative consequences:
+* The drone's location is not as spacific (because every pixel represent a larger real life area). // TODO: check if affects on the error and show results.
+* The computation time shortens. // TODO: check and show results.
+
+Another usage of resize_dsm is achieved by passing 
+This method can also reverse its affect by passing a False value with the same multiplier value. by passing a false flag the method merge adjecent pixels to be one with the height of the maximum height of the united pixels. This option can be run without enhancing first, however calling resize with a false enhance flag comes with few consequences:
+* It might cause information lose (caused by merging a group of pixels that may hold different height values to one with a single height value).
+
+
 
 ### 4. Creating Paths:
 
@@ -59,9 +67,6 @@ This method can also reverse its affect by passing a False value ... TODO: add .
 def gen_paths(self, flag, constrain, path_type, start_location=None, path_num=1, to_print=False, epsilon=1.0)
 ```
 
-```python
-pg.gen_paths(flag='d', constrain=1000, path_type='a_star', start_location=[150, 150], path_nums=1, to_print=True, epsilon=2)
-```
 parameters:
 * flag: could be either 'd' for distance or 't' time meaning what kind of constrain we want for our path.
 * constrain: If we chose flag = 'd' the number inserted here will be the limit for distance the drone will go. If we chose flag = 't' so constraing will be the time limit for the drone path.
@@ -70,6 +75,13 @@ parameters:
 * path_num: The number of paths we want to generate with these constraints. The default value is 1.
 * to_print: A boolean value indicating if we want the paths to be printed on the map.
 * epsilon: Only when using 'a_star'. epsilon should be >= 1.
+
+#### Usage Example
+
+```python
+pg.gen_paths(flag='d', constrain=1000, path_type='a_star', start_location=[150, 150], path_nums=1, to_print=True, epsilon=2)
+```
+
 
 ## Our Results and Algorithm Explanation:
 
