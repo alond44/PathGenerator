@@ -1,19 +1,23 @@
-import os
-import numpy as np
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-import random
 import math
+import random
+
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+from matplotlib.pyplot import figure
+import numpy as np
+
 from DSM_Paths.DsmParser import create_map
 
 
 class PathGenerator:
     """
-    This is the main class. To create paths, create an instance of a PathGenerator with the desired parameters.
+    This is the main class. To create paths, create an instance of a PathGenerator with the desired parameters then,
+    call gen_paths with the constraints of your choosing.
     """
+
     def __init__(self, velocity, flight_height, dsm=None, pixel_dist=2.0):
         """
-        Outputs the map with the given path on it.
+        Creates an instance of a PathGenerator.
 
          Parameters
         ----------
@@ -22,7 +26,7 @@ class PathGenerator:
         flight_height : float
             The flight's altitude in meters.
         dsm : List of Lists of floats
-            The DSM map.
+            The DSM map. We assume it is squared.
         pixel_dist : float
             The distance of a pixel's width in real life (in meters).
         """
@@ -35,14 +39,14 @@ class PathGenerator:
         else:
             self._dsm = None
             print('Need to initiate map using init_map before we start.')
-        self._process_map()  # TEMP
+        self.__process_map()
         # These fields are used to determine the boundaries of the map (where the object appear).
-        self._x_lower_bound, self._y_lower_bound, self._x_upper_bound, self._y_upper_bound = self._bound_map_main_area()
+        self._x_lower_bound, self._y_lower_bound, self._x_upper_bound, self._y_upper_bound = self.__bound_map_main_area()
 
     def init_map(self, input_path=None, file_name=None, save_tif=False, pixel_dist=2):
         """
         This method loads the DSM map to an instance using a binary file representing it. The binary file must be in
-        a directory named 'BinFiles' inside the project's main directory.
+        a directory named 'BinFiles' inside the 'input_path' directory.
         If the save_tif argument is True the dsm map will be saved as a .tif image in a folder named DSMout under the
         name DSM0.tif.
         """
@@ -50,31 +54,31 @@ class PathGenerator:
             self._dsm = create_map(input_path, file_name, save_tif)
             self._map_side = len(self._dsm)
             self._pixel_dist = pixel_dist
-        self._process_map()  # TEMP
+        self.__process_map()
         # Updating the map boundary values.
-        self._x_lower_bound, self._y_lower_bound, self._x_upper_bound, self._y_upper_bound = self._bound_map_main_area()
+        self._x_lower_bound, self._y_lower_bound, self._x_upper_bound, self._y_upper_bound = self.__bound_map_main_area()
 
+    # TODO: explain the epsilon in the documentation.
     def gen_paths(self, flag, constrain, path_type, start_location=None, path_num=1, to_print=False, epsilon=1.0):
         """
-                Enhancing the dsm resolution by the given multiplier
-                 Parameters
-                ---------
-                flag : str
-                    Will hold either 'd' for distance constrain or 't' for time constrain.
-                constrain : float
-                    The paths' length in meters for distance constrained paths or the travel time for time
-                    in seconds constrained paths.
-                start_location : list
-                    The path's first point. If none is passed or the given point is not valid a random one will
-                    be generated.
-                path_num : int
-                    The number of paths wanted.
-                path_type
-                    The kind of path generating algorithm used.
-                    Will hold either 'prob' for probability random path and 'a_star' for a_star generated path to
-                    random spots.
-                to_print : bool
-                    Pass True to print the resulting paths over the dsm map.
+         Parameters
+        ---------
+        flag : str
+            Will hold either 'd' for distance constraint or 't' for time constraint.
+        constrain : float
+            Either the paths' length in meters for distance constrained paths or the travel time for time
+            in seconds constrained paths.
+        path_type
+            The kind of path generating algorithm used.
+            Will hold either 'prob' for probability random path and 'a_star' for A* generated path to
+            random spots.
+        start_location : list
+            The path's first point. If None is passed or the given point is not valid a random one will
+            be generated.
+        path_num : int
+            The number of paths wanted.
+        to_print : bool
+            Pass True to print the resulting paths over the dsm map.
         """
         if self._dsm is not None:
             need_new_start_pos = start_location is None or not self._can_fly_over_in_bound(start_location)
@@ -102,7 +106,8 @@ class PathGenerator:
                     paths += [self.__gen_path_a_star_epsilon(start_location=start_location, max_cost=constrain,
                                                              pixel_cost=pixel_cost, epsilon=epsilon)]
             else:
-                print('Path type is not one of the correct path generating ways')
+                print('Path type is not one of the correct path generating ways.')
+                print('This method except ')
                 return []
             if to_print:
                 for path in paths:
@@ -132,6 +137,7 @@ class PathGenerator:
         here: https://matplotlib.org/2.1.1/api/_as_gen/matplotlib.pyplot.plot.html
         """
         if self._dsm is not None:
+            figure(num=None, figsize=(8, 6))
             plot_style = path_color + path_style
             plt.figure(1)
             plt.imshow(self._dsm)
@@ -142,71 +148,81 @@ class PathGenerator:
                     x_list += [point[0]]
                     y_list += [point[1]]
                 plt.plot(y_list, x_list, plot_style)
-                # TODO: decide if we want start and end points showed.
-                # plt.plot(y_list[0], x_list[0], 'w.')
-                # plt.plot(y_list[-1], x_list[-1], 'b.')
+                # printing the path's start and end points with their descriptions on the map
+                start_patch = patches.Patch(color='cyan', label='Path\'s start')
+                end_patch = patches.Patch(color='blue', label='Path\'s end')
+                plt.legend(handles=[start_patch, end_patch], bbox_to_anchor=(1.32, 1), loc='upper right')
+                plt.plot(y_list[0], x_list[0], 'c.')
+                plt.plot(y_list[-1], x_list[-1], 'b.')
+
             plt.show()
         else:
             print('Need to initiate map using init_map before we start.')
 
-    def resize_dsm(self, multiplier, enhance=True):
+    def map_zoom_in(self, multiplier: int):
         """
-        Enhancing the dsm resolution by the given multiplier
+        Enhancing the dsm resolution by the given multiplier.
          Parameters
         ---------
         multiplier : int
-            The enhance multiplier. Must be > 0.
-        enhance : bool
-            True for enhancing and False for decrease resolution.
+             The enhance multiplier. Must be > 0.
+        """
+        if self._dsm is not None:
+            if multiplier <= 0:
+                return  # Not allowing a negative enhance multiplier.
+            self._map_side *= multiplier
+            new_dsm = [[0 for j in range(self._map_side)] for i in range(self._map_side)]
+            for x in range(0, len(new_dsm)):
+                for y in range(0, len(new_dsm)):
+                    new_dsm[x][y] = self._dsm[int(x / multiplier)][int(y / multiplier)]
+            self._pixel_dist = self._pixel_dist / multiplier
+            self._dsm = new_dsm
+            self._map_side = len(self._dsm)
+            # These fields are used to determine the boundaries of the map (where the object appear).
+            self._x_lower_bound, self._y_lower_bound, self._x_upper_bound, self._y_upper_bound = \
+                self.__bound_map_main_area()
+        else:
+            print('Need to initiate the dsm map using init_map before using the zoom in method.')
+
+    def map_zoom_out(self, multiplier: int):
+        """
+        Downgrading the dsm resolution by the given multiplier.
+         Parameters
+        ---------
+        multiplier : int
+            The pixel merge multiplier. Must be > 0.
 
          Notes
         ---------
         Decreasing resolution might cause information loss as we use max value substitution.
         """
         if self._dsm is not None:
-            if multiplier <= 0:
-                return  # Not allowing a negative enhance multiplier.
-            if enhance:
-                self._map_side *= multiplier
-                new_dsm = [[0 for j in range(self._map_side)] for i in range(self._map_side)]
-                for x in range(0, len(new_dsm)):
-                    for y in range(0, len(new_dsm)):
-                        new_dsm[x][y] = self._dsm[int(x/multiplier)][int(y/multiplier)]
-                self._pixel_dist = self._pixel_dist/multiplier
-            else:
-                prev_side = self._map_side
-                self._map_side = int(prev_side/multiplier) if prev_side % multiplier == 0 else 1 + int(prev_side/multiplier)
-                new_dsm = [[0 for j in range(self._map_side)] for i in range(self._map_side)]
-                for x in range(0, len(new_dsm)):
-                    for y in range(0, len(new_dsm)):
-                        maxi = -np.inf
-                        for i in range(0, multiplier):
-                            for j in range(0, multiplier):
-                                x_idx = x*multiplier + i
-                                y_idx = y*multiplier + j
-                                val = -np.inf if x_idx >= prev_side or y_idx >= prev_side else self._dsm[x_idx][y_idx]
-                                maxi = max(maxi, val)
-                        new_dsm[x][y] = maxi
-                self._pixel_dist = prev_side*self._pixel_dist/self._map_side
+            prev_side = self._map_side
+            self._map_side = int(prev_side / multiplier) if prev_side % multiplier == 0 else\
+                1 + int(prev_side / multiplier)
+            new_dsm = [[0 for j in range(self._map_side)] for i in range(self._map_side)]
+            for x in range(0, len(new_dsm)):
+                for y in range(0, len(new_dsm)):
+                    maxi = -np.inf
+                    for i in range(0, multiplier):
+                        for j in range(0, multiplier):
+                            x_idx = x * multiplier + i
+                            y_idx = y * multiplier + j
+                            val = -np.inf if x_idx >= prev_side or y_idx >= prev_side else self._dsm[x_idx][y_idx]
+                            maxi = max(maxi, val)
+                    new_dsm[x][y] = maxi
+            self._pixel_dist = prev_side * self._pixel_dist / self._map_side
             self._dsm = new_dsm
             self._map_side = len(self._dsm)
             # These fields are used to determine the boundaries of the map (where the object appear).
             self._x_lower_bound, self._y_lower_bound, self._x_upper_bound, self._y_upper_bound = \
-                self._bound_map_main_area()
+                self.__bound_map_main_area()
         else:
-            print('Need to initiate the dsm map using init_map before we resize it.')
+            print('Need to initiate the dsm map using init_map before using the zoom out method.')
 
-    def print_map_size(self):
-        if self._dsm is not None:
-            print(f'self._map_side: {self._map_side}')
-            print(f'len(self._dsm): {len(self._dsm)}')
-            print(f'len(self._dsm[0]): {len(self._dsm[0])}')
-            print(f'self._pixel_dist: {self._pixel_dist}')
-        else:
-            print('Need to initiate the dsm map using init_map before we show it\'s size.')
-
-    def _bound_map_main_area(self):
-        """ Assuming the given map is a square matrix. This method returns the map's boundaries so we  can look at the
+    def __bound_map_main_area(self):
+        """
+        Assuming the given map is a square matrix. This method returns the map's boundaries so we  can look at the
         map without leading zero valued side rows or columns. For example:
                                            0000000000
                                            0001111100        011111
@@ -217,16 +233,20 @@ class PathGenerator:
         """
         if self._dsm is not None:
             indices = [i for i in range(self._map_side)]
-            x_lower_bound = self._get_first_nonzero_row(indices)
-            y_lower_bound = self._get_first_nonzero_col(indices)
+            x_lower_bound = self.__get_first_nonzero_row(indices)
+            y_lower_bound = self.__get_first_nonzero_col(indices)
             indices.reverse()
-            x_upper_bound = self._get_first_nonzero_row(indices)
-            y_upper_bound = self._get_first_nonzero_col(indices)
+            x_upper_bound = self.__get_first_nonzero_row(indices)
+            y_upper_bound = self.__get_first_nonzero_col(indices)
             return x_lower_bound, y_lower_bound, x_upper_bound, y_upper_bound
         else:
             return 0, 0, 0, 0
 
-    def _get_first_nonzero_row(self, indices):
+    def __get_first_nonzero_row(self, indices):
+        """
+        This method returns the first cell value, x, of indices in which row number x of the dsm map
+        holds at least one value that is not zero.
+        """
         if indices is not None:
             for x in indices:
                 for j in range(self._map_side):
@@ -234,7 +254,11 @@ class PathGenerator:
                         return x
         return 0  # Shouldn't get here with correct use
 
-    def _get_first_nonzero_col(self, indices):
+    def __get_first_nonzero_col(self, indices):
+        """
+                This method returns the first cell value, y, of indices in which column number y of the dsm map
+                holds at least one value that is not zero.
+        """
         if indices is not None:
             for y in indices:
                 for i in range(self._map_side):
@@ -242,10 +266,10 @@ class PathGenerator:
                         return y
         return 0  # Shouldn't get here with correct use
 
-    def __inside_array(self, pos):
-        return self._dsm.shape[0] > pos[0] >= 0 and self._dsm.shape[1] > pos[1] >= 0
-
     def __gen_path_probability(self, start_location: list, max_cost: float, pixel_cost: float):
+        """
+        TODO: document.
+        """
         cur_pos = start_location
         path = [cur_pos]
         directions = [[-1, 0], [0, -1], [1, 0], [0, 1], [1, 1], [1, -1], [-1, 1], [-1, -1]]
@@ -273,16 +297,14 @@ class PathGenerator:
                         break
                 last_move = move
 
-    # Alon's Note: Should be a static method in my opinion. Look at the to-do comment.
-    def __h(self, location, goal, epsilon):  # TODO: Why do we need to multiply by self._pixel_dist * epsilon?
+    def __h(self, location, goal, epsilon):
         """The heuristic function we used - Manhattan distance."""
         return (abs(goal[0] - location[0]) + abs(goal[1] - location[1])) * self._pixel_dist * epsilon
 
+    # Alon's Note: Shouldn't it have "__" prefix?
     def a_star_epsilon(self, start_location, end_location, epsilon):
-        """ Alon's note: this is regular A-star, epsilon has no meaning here. We need to choose a random next node
-        from a set containing node's with f <= (1+epsilon)min_f and not the node with the smallest f value.
-        We can leave it as is (A-Star algorithm) and just change the name and delete epsilon. The results are good
-        with the regular algorithm you implemented.
+        """
+        TODO: document.
         """
         open_set = {tuple(start_location)}
         came_from = {}
@@ -290,7 +312,6 @@ class PathGenerator:
         f_score = {tuple(start_location): self.__h(start_location, end_location, epsilon)}
 
         while bool(open_set):
-            # Alon's note: cool syntax can you explain what does lambda do?
             current = min(open_set, key=lambda x: f_score.get(x, float('inf')))
             if current == tuple(end_location):
                 path = [list(current)]
@@ -301,9 +322,8 @@ class PathGenerator:
 
             open_set.remove(current)
             directions = [[-1, 0], [1, 0], [0, -1], [0, 1]]
-            for direction in directions:  # Alon's note: dir is a built-in function so I changed dir -> direction
+            for direction in directions:
                 neighbor = [sum(x) for x in zip(direction, list(current))]
-                # Alon's note: changed __inside_array -> _can_fly_over_in_bound
                 if self._can_fly_over_in_bound(neighbor):
                     tentative_g_score = g_score.get(current, float('inf')) + self._pixel_dist
                     if tentative_g_score < g_score.get(tuple(neighbor), float('inf')):
@@ -320,7 +340,7 @@ class PathGenerator:
     def __gen_path_a_star_epsilon(self, start_location: list, max_cost: float, pixel_cost: float, epsilon: float = 1.0):
         """
         This method creates a path from the given starting location to a randomized end
-        location with the length of max_len.
+        location with the cost of max_cost.
         """
         path = []
         cur_start = start_location
@@ -332,8 +352,10 @@ class PathGenerator:
                 return path[:int(max_cost / pixel_cost)]
 
     def _gen_random_point_under_constraints(self):
-        """This method return a random point in the map's main area (bounded in _bound_map_main_area)
-        whose height value is shorter then the flight's height."""
+        """
+        This method return a random point in the map's main area (bounded in _bound_map_main_area)
+        whose height value is shorter then the flight's height.
+        """
         while True:
             rand_x = random.randrange(self._x_lower_bound, self._x_upper_bound)
             rand_y = random.randrange(self._y_lower_bound, self._y_upper_bound)
@@ -342,8 +364,6 @@ class PathGenerator:
 
     def _can_fly_over(self, pos_x, pos_y):
         """This method checks if a position in the dsm map got height value larger then the drone's flight height"""
-        # TODO: change later to <= when we understand the negative values in the dsm.
-        # TEMP - changed need permanent fix for height values!
         return self._dsm[pos_x][pos_y] <= self._flight_height
 
     def _in_map_bound(self, pos):
@@ -360,9 +380,9 @@ class PathGenerator:
         if path is not None:
             distance = 0
             for i in range(len(path) - 1):
-                x_squared = math.pow(path[i+1][0] - path[i][0], 2)
-                y_squared = math.pow(path[i+1][1] - path[i][1], 2)
-                distance += math.sqrt(x_squared + y_squared)*self._pixel_dist
+                x_squared = math.pow(path[i + 1][0] - path[i][0], 2)
+                y_squared = math.pow(path[i + 1][1] - path[i][1], 2)
+                distance += math.sqrt(x_squared + y_squared) * self._pixel_dist
             return distance
         return 0
 
@@ -370,26 +390,21 @@ class PathGenerator:
         if path is not None:
             travel_time = 0
             for i in range(len(path) - 1):
-                x_squared = math.pow(path[i+1][0] - path[i][0], 2)
-                y_squared = math.pow(path[i+1][1] - path[i][1], 2)
-                distance = math.sqrt(x_squared + y_squared)*self._pixel_dist
+                x_squared = math.pow(path[i + 1][0] - path[i][0], 2)
+                y_squared = math.pow(path[i + 1][1] - path[i][1], 2)
+                distance = math.sqrt(x_squared + y_squared) * self._pixel_dist
                 travel_time += distance / self._velocity
             return travel_time
         return 0
 
-    # TODO: get rid of this method TEMP.
-    def _process_map(self):
-        zero_val = self._dsm[0][0]
+    def __process_map(self):
+        max_pixel = -np.inf
+        for row in self._dsm:
+            max_pixel = max(max_pixel, max(row))
         for i in range(len(self._dsm)):
             for j in range(len(self._dsm)):
-                self._dsm[i][j] = abs(self._dsm[i][j] - zero_val)
+                self._dsm[i][j] = abs(self._dsm[i][j] - max_pixel)
 
     @staticmethod
     def __is_zero(val):
-        # TEMP
-        # return -2 <= int(val) + 243 <= 2
         return -2 <= int(val) <= 2
-
-
-
-
