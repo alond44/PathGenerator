@@ -38,6 +38,8 @@ pg = PathGenerator(velocity=50, flight_height=150, dsm=_dsm, pixel_dist=2)
 
 ### 3. Change Map Resolution (Optional):
 
+#### Zoom In
+
 ```python
 def map_zoom_in(self, multiplier: int)
 ```
@@ -48,23 +50,38 @@ We've created a way to get more specific with the drone's location by dividing e
 For example: the first of the following images represents a single pixel and the second represents that same pixel after calling `pg.resize(2, True)` resulting it to split into four different pixels that represent half of the width and fourth of the area.
 
 
-    ![alt text](https://github.com/alond44/PathGenerator/blob/main/Ilustrations/single_pixel.png "Pixel Before Zoom In")
+![alt text](https://github.com/alond44/PathGenerator/blob/main/Ilustrations/single_pixel.png "Pixel Before Zoom In")
 
 
 ![alt text](https://github.com/alond44/PathGenerator/blob/main/Ilustrations/divided_pixel.png "Pixel After Zoom in")
 
 
-This usage has some positive and negative consequences:
-* + The drone's location is more spacific (as every pixel represents a smaller real life area). 
-* + The difference between the given constraints and the outputed path's cost (distance or time) is smaller. // TODO: check if affects on the error and show results. 
-* - The computation time lengthen. // TODO: check and show results.
+This method has some pluses and minuses consequences:
+
+* Plus: The drone's location is more spacific (as every pixel represents a smaller real life area). 
+* Plus: The difference between the given constraints and the outputed path's cost (distance or time) is smaller. // TODO: check if affects on the error and show results. 
+* Minus: The computation time lengthen. // TODO: check and show results.
 
 
+#### Zoom Out 
 
-Another usage of resize_dsm is achieved by passing 
-This method can also reverse its affect by passing a False value with the same multiplier value. by passing a false flag the method merge adjecent pixels to be one with the height of the maximum height of the united pixels. This option can be run without enhancing first, however calling resize with a false enhance flag comes with few consequences:
-* It might cause information lose (caused by merging a group of pixels that may hold different height values to one with a single height value).
+```python
+def map_zoom_out(self, multiplier: int)
+```
 
+The argument multiplier serves the same purpose as it does in the zoom in method. 
+A call 'pg.map_zoom_out(x)' will reverse the effect of 'pg.map_zoom_in(x)' and will make no change to the map. However a zoom out method call does not have to come after a call to zoom in. It can be called indepentently and in that case the method will merge every x pixels to one with a height value of the maximum pixel in the pixel group that was merged.
+
+This method's pluses and minuses are the opposite from those of the zoom in method.
+
+Notes:
+* Using zoom out with multiplier M is possible even when the dsm map dimensions are YxY and Y is not divisable by x.
+* Using this method might cause information lose due to the max value pixel merge.
+
+
+##### Illustration:
+
+![alt text](https://github.com/alond44/PathGenerator/blob/main/Ilustrations/zoom_out_example.png "Zoom Out example")
 
 
 ### 4. Creating Paths:
