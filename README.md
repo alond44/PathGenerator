@@ -91,19 +91,25 @@ def gen_paths(self, flag, constrain, path_type, start_location=None, path_num=1,
 ```
 
 parameters:
-* flag: could be either 'd' for distance or 't' time meaning what kind of constrain we want for our path.
-* constrain: If we chose flag = 'd' the number inserted here will be the limit for distance the drone will go. If we chose flag = 't' so constraing will be the time limit for the drone path.
+* flag: Will hold either 'd' for distance constraint or 't' for time constraint.
+* constrain: Either the paths' length in meters for distance constrained paths or the travel time for time in seconds constrained paths.
 * path_type: 'prob' or 'a_star' as will be explain in more details later- 'prob' creates a simple path using random walk in the map while 'a_star' create path using weighted a* algorithm between some randome sampled points.
-* start_location: The start location of the drone. If `None` is passed a random one will be generated. 
-* path_num: The number of paths we want to generate with these constraints. The default value is 1.
-* to_print: A boolean value indicating if we want the paths to be printed on the map.
+* start_location: The path's first point. If None is passed or the given point is not valid a random one will be generated.
+* path_num: The number of paths wanted.
+* to_print: Pass True to print the resulting paths over the dsm map.
 * epsilon: Only when using 'a_star'. epsilon should be >= 1.
+
+Return value - A list of 'path_num' paths.
 
 #### Usage Example
 
 ```python
 pg.gen_paths(flag='d', constrain=1000, path_type='a_star', start_location=[150, 150], path_nums=1, to_print=True, epsilon=2)
 ```
+
+
+### Extra 
+
 
 
 ## Our Results and Algorithm Explanation:
