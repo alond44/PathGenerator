@@ -47,6 +47,13 @@ def map_zoom_in(self, multiplier: int)
 We've created a way to get more specific with the drone's location by dividing each pixel to a few more so each pixel will represent a smalller real world tile with the same height value.
 For example: the first of the following images represents a single pixel and the second represents that same pixel after calling `pg.resize(2, True)` resulting it to split into four different pixels that represent half of the width and fourth of the area.
 
+
+![alt text](https://github.com/alond44/PathGenerator/blob/main/Ilustrations/single_pixel.png "Pixel Before Zoom In")
+
+
+![alt text](https://github.com/alond44/PathGenerator/blob/main/Ilustrations/divided_pixel.png "Pixel After Zoom in")
+
+
 This usage has some positive and negative consequences:
 * + The drone's location is more spacific (as every pixel represents a smaller real life area). 
 * + The difference between the given constraints and the outputed path's cost (distance or time) is smaller. // TODO: check if affects on the error and show results. 
