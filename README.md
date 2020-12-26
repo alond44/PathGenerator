@@ -164,5 +164,19 @@ This method recieve a path and returns the path's travel duration on the instanc
 
 ## Our Results and Algorithm Explanation:
 
-### Simple- Random Walk Path
-![alt text](https://github.com/alond44/PathGenerator/blob/main/Results/random_walk%20result.png "Random Walk Example Result")
+### Simple Example and Algorithm
+#### Local Path- Probability Random Walk Path
+The first kind of algorithm we have imlemented in order to create the path was a "random surfer".
+At each point the agent decides which place to go from 8-ways opportunities by random, with the limitation of not going back from the same way that we came from (so in practice 7-ways selection).
+
+![alt text](https://github.com/alond44/PathGenerator/blob/main/Results/simple_example_Probabilistic.png "Random Walk Simple Example Result")
+
+As could be seen from the result, this algorithm created more "localy wandering" path that hasn't spread much over the city.
+
+#### Extensive Path- Weighted A* Path
+The second algorithm we have implemented was a weighted A* algorithm.
+The Path was created by sampling random points in the map while calculating a optimal path (or suboptimal path bounded to weight*optimal_path) between those points.
+
+![alt text](https://github.com/alond44/PathGenerator/blob/main/Results/simple_example_Weighted_A_Star.png "A* Simple Example Result")
+
+As could be seen from the result, this algorithm created more distributed path that explore much bigger parts of the city.
