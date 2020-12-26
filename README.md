@@ -213,9 +213,9 @@ And how are both affected by the zoom in/out methods.
 The results weren't surprising.
 The zoom in method caused longer calculation time but resulted in a much smaller as we passed a bigger multiplier.
 On the flip side, zoom out had the opposite affect, the calculation time shortened but it resulted a bigger constraint error.
-Furthermore, we can notice that the distance error in our Weighted-A* runs are dependent of the width a pixel represent in real life. Meaning an error can't be larger then the width of a pixel but we are limited to make 'pixel_dist' sized steps from one point to it's neighbore in Weighted-A* (we allow movement a pixel up, down, left and right - no diagonals).
+Furthermore, we can notice that the distance error in our Weighted-A* runs are dependent of the width a pixel represent in real life. Meaning an error can't be larger then the width of a pixel but we are limited to make 'pixel_dist' sized steps from one point to it's neighbor in Weighted-A* (we allow movement a pixel up, down, left and right - no diagonals).
 The probabilistic paths aren't limited to 'pixel_dist' sized steps (as we allow diagonal moves to neighbors) so this point does not apply to them.
 
-#### Note
-We tested every combination of constraint type and path type (4 combinations) in both the error test and calculation time test.
-
+#### Notes
+* We tested every combination of constraint type and path type (4 combinations) in both the error test and calculation time test.
+* The tests outputs can be found as .png or as .txt files under the Results/Tests Outputs folder. 
