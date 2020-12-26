@@ -144,9 +144,23 @@ Passing a `None` value in the path argument results in printing the instance's d
 
 ##### Usage Example
 ```python
-pg.print_path(path=path)
+pg.print_path(path=my_path)
 ```
 
+##### Path Distance Calculator
+
+```python
+def calc_path_distance(self, path: list)
+```
+This method recieve a path and returns the path's distance on the instance's map.
+
+##### Path Travel Time Calculator
+
+```python
+def calc_path_travel_time(self, path: list)
+```
+
+This method recieve a path and returns the path's travel duration on the instance's map.
 
 ## Our Results and Algorithm Explanation:
 
