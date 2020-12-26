@@ -51,7 +51,7 @@ At this point you need to choose the flight parameters:
 ```python
 pg = PathGenerator(velocity=50, flight_height=150, dsm=_dsm, pixel_dist=2)
 ```
-#### Note:
+#### DSM Load Alternative:
 
 If you did not initiate the dsm  map in the constractor (passed `None`) you'll need to use the `init_map` method in order to use the instance you've created
 
