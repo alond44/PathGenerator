@@ -5,19 +5,13 @@ from DSM_Paths.DsmParser import create_map
 from DSM_Paths.path_generator import PathGenerator, PathType, ConstraintType
 
 
-def expansion_test():
-    print(f"*************** expansion_test ***************")
-    dsm_ = [[0, 1, 2, 3, 4], [5, 6, 7, 8, 9], [10, 11, 12, 13, 14], [15, 16, 17, 18, 19], [20, 21, 22, 23, 24]]
-    pg = PathGenerator(50, 8, dsm_)
-    print("Starting dsm:")
-    pg.print_path()
-    pg.map_zoom_out(2)
-    print("After zooming out:")
-    pg.print_path()
-    pg.map_zoom_in(2)
-    print("After zooming back in:")
-    pg.print_path()
-    print(f"\n\n\n")
+def simple_example(pg: PathGenerator):
+    # Weighted A* path
+    pg.gen_paths(flag=ConstraintType.DISTANCE, constraint=1500, path_type=PathType.MAP_ROAM, start_location=None,
+                 path_num=1, to_print=True, weight=2)
+    # Probabilistic path
+    pg.gen_paths(flag=ConstraintType.DISTANCE, constraint=1500, path_type=PathType.AREA_EXPLORE, start_location=None,
+                 path_num=1, to_print=True, weight=2)
 
 
 def path_cost_test_1(pg, flag, path_type, desired_cost=1000, path_number=100, print_paths=False):
@@ -29,7 +23,6 @@ def path_cost_test_1(pg, flag, path_type, desired_cost=1000, path_number=100, pr
 
         paths = pg.gen_paths(flag=flag, constraint=desired_cost, path_type=path_type, to_print=print_paths,
                              path_num=path_number, weight=2)
-
         cost_sum = 0
         error_sum = 0
         for i in range(len(paths)):
@@ -77,10 +70,13 @@ if __name__ == "__main__":
     dsm_ = create_map(Inputpath, FileName)
 
     pg = PathGenerator(velocity=50, flight_height=50, dsm=dsm_, pixel_dist=2)
-    # path_cost_test_1(pg, flag='d', path_type='prob', desired_cost=2000, print_paths=False, path_number=10)
-    path_cost_test_1(pg, flag=ConstraintType.DISTANCE, path_type=PathType.MAP_ROAM, desired_cost=2000,
-                     print_paths=True, path_number=2)
-    pg.map_zoom_out(5)
-    path_cost_test_1(pg, flag=ConstraintType.DISTANCE, path_type=PathType.MAP_ROAM, desired_cost=2000,
-                     print_paths=True, path_number=2)
+    simple_example(pg)
 
+    '''
+    path_cost_test_1(pg, flag=ConstraintType.DISTANCE, path_type=PathType.MAP_ROAM, desired_cost=2000,
+                     print_paths=False, path_number=1000)
+    pg.map_zoom_out(2)
+    path_cost_test_1(pg, flag=ConstraintType.DISTANCE, path_type=PathType.MAP_ROAM, desired_cost=2000,
+                     print_paths=False, path_number=1000)
+    pg.map_zoom_in(4)
+    '''
