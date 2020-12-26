@@ -51,9 +51,9 @@ At this point you need to choose the flight parameters:
 ```python
 pg = PathGenerator(velocity=50, flight_height=150, dsm=_dsm, pixel_dist=2)
 ```
-#### Note:
+#### DSM Load Alternative:
 
-If you did not initiate the dsm  map in the constractor (passed `None`) you'll need to use the `init_map` method in order to use the instance you've created
+If you did not initiate the dsm  map in the constractor (passed `dsm=None`) you'll need to use the `init_map` method in order to use the instance you've created.
 
 ```python
 def init_map(self, input_path=None, file_name=None, save_tif=False, pixel_dist=2.0)
@@ -144,9 +144,23 @@ Passing a `None` value in the path argument results in printing the instance's d
 
 ##### Usage Example
 ```python
-pg.print_path(path=path)
+pg.print_path(path=my_path)
 ```
 
+#### Path Distance Calculator
+
+```python
+def calc_path_distance(self, path: list)
+```
+This method recieve a path and returns the path's distance on the instance's map.
+
+#### Path Travel Time Calculator
+
+```python
+def calc_path_travel_time(self, path: list)
+```
+
+This method recieve a path and returns the path's travel duration on the instance's map.
 
 ## Our Results and Algorithm Explanation:
 
