@@ -26,7 +26,7 @@ def path_cost_test_1(pg, flag, path_type, desired_cost=1000, path_number=100, pr
         print(f"                Path Type: \'{path_type}\'\n")
         print(f"Ran with desired_cost = {desired_cost} and path_number = {path_number}")
         paths = pg.gen_paths(flag=flag, constrain=desired_cost, path_type=path_type, to_print=print_paths,
-                             path_num=path_number, epsilon=2)
+                             path_num=path_number, weight=2)
 
         cost_sum = 0
         error_sum = 0
@@ -59,7 +59,7 @@ def path_generating_time_test(pg, flag, path_type, desired_cost=1000, path_numbe
 
         start_time = time.time()
         paths = pg.gen_paths(flag=flag, constrain=desired_cost, path_type=path_type, to_print=print_paths,
-                             path_num=path_number, epsilon=2)
+                             path_num=path_number, weight=2)
         total_time = time.time() - start_time
 
         avg_time = total_time / path_number

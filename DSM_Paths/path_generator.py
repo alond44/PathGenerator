@@ -69,8 +69,8 @@ class PathGenerator:
         # Updating the map boundary values.
         self._x_lower_bound, self._y_lower_bound, self._x_upper_bound, self._y_upper_bound = self.__bound_map_main_area()
 
-    # TODO: explain the epsilon in the documentation.
-    def gen_paths(self, flag, constrain, path_type, start_location=None, path_num=1, to_print=False, epsilon=1.0):
+
+    def gen_paths(self, flag, constrain, path_type, start_location=None, path_num=1, to_print=False, weight=1.0):
         """
          Parameters
         ---------
@@ -81,7 +81,7 @@ class PathGenerator:
             in seconds constrained paths.
         path_type
             The kind of path generating algorithm used.
-            Will hold either 'prob' for probability random path and 'a_star' for A* generated path to
+            Will hold either 'prob' for probability random path and 'a_star' for weighted A* generated path to
             random spots.
         start_location : list
             The path's first point. If None is passed or the given point is not valid a random one will
@@ -90,6 +90,10 @@ class PathGenerator:
             The number of paths wanted.
         to_print : bool
             Pass True to print the resulting paths over the dsm map.
+        weight : float
+            Pass the weight (>= 1.0) for the heuristic value of weighted astar. If the weight given to this function is epsilon,
+            and the original heuristic function is h_0(x) so the value used by astar woulf be epsilon*h_0(x).
+            Using weighted astar promises a solution of weight times the optimal path between the chosen points.
         """
         if self._dsm is not None:
             need_new_start_pos = start_location is None or not self._can_fly_over_in_bound(start_location)
@@ -114,8 +118,8 @@ class PathGenerator:
                 for i in range(path_num):
                     if need_new_start_pos:
                         start_location = self._gen_random_point_under_constraints()
-                    paths += [self.__gen_path_a_star_epsilon(start_location=start_location, max_cost=constrain,
-                                                             pixel_cost=pixel_cost, epsilon=epsilon)]
+                    paths += [self.__gen_path_weighted_astar(start_location=start_location, max_cost=constrain,
+                                                             pixel_cost=pixel_cost, weight=weight)]
             else:
                 print('Path type is not one of the correct path generating ways.')
                 print('This method except ')
@@ -313,14 +317,15 @@ class PathGenerator:
         return (abs(goal[0] - location[0]) + abs(goal[1] - location[1])) * self._pixel_dist * epsilon
 
     # Alon's Note: Shouldn't it have "__" prefix?
-    def a_star_epsilon(self, start_location, end_location, epsilon):
+    def __weighted_a_star(self, start_location, end_location, weight):
         """
-        TODO: document.
+        This function calculates weighted A* algorithm between start_location and end_location.
+        The weight (epsilon) for weighted A* is the parameter weight.
         """
         open_set = {tuple(start_location)}
         came_from = {}
         g_score = {tuple(start_location): 0}
-        f_score = {tuple(start_location): self.__h(start_location, end_location, epsilon)}
+        f_score = {tuple(start_location): self.__h(start_location, end_location, weight)}
 
         while bool(open_set):
             current = min(open_set, key=lambda x: f_score.get(x, float('inf')))
@@ -340,15 +345,14 @@ class PathGenerator:
                     if tentative_g_score < g_score.get(tuple(neighbor), float('inf')):
                         came_from[tuple(neighbor)] = current
                         g_score[tuple(neighbor)] = tentative_g_score
-                        # Alon's note: Should'nt it be: f_score = *tentative_g_score* + h??
                         f_score[tuple(neighbor)] = g_score.get(tuple(neighbor), float('inf')) + self.__h(neighbor,
                                                                                                          end_location,
-                                                                                                         epsilon)
+                                                                                                         weight)
                         if tuple(neighbor) not in open_set:
                             open_set.add(tuple(neighbor))
         return []
 
-    def __gen_path_a_star_epsilon(self, start_location: list, max_cost: float, pixel_cost: float, epsilon: float = 1.0):
+    def __gen_path_weighted_astar(self, start_location: list, max_cost: float, pixel_cost: float, weight: float = 1.0):
         """
         This method creates a path from the given starting location to a randomized end
         location with the cost of max_cost.
@@ -357,7 +361,7 @@ class PathGenerator:
         cur_start = start_location
         while True:
             next_goal = self._gen_random_point_under_constraints()  # Note: replaced the loop with this method.
-            path += self.a_star_epsilon(cur_start, next_goal, epsilon)
+            path += self.__weighted_a_star(cur_start, next_goal, weight)
             cur_start = path[-1]
             if len(path) * pixel_cost > max_cost:
                 return path[:int(max_cost / pixel_cost)]
