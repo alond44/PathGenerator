@@ -1,5 +1,6 @@
 import math
 import random
+from enum import Enum
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -7,6 +8,16 @@ from matplotlib.pyplot import figure
 import numpy as np
 
 from DSM_Paths.DsmParser import create_map
+
+
+class PathType(Enum):
+    MAP_ROAM = 0
+    AREA_EXPLORE = 1
+
+
+class PathConstraint(Enum):
+    TIME = 0
+    DISTANCE = 1
 
 
 class PathGenerator:

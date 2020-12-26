@@ -51,13 +51,12 @@ def path_cost_test_1(pg, flag, path_type, desired_cost=1000, path_number=100, pr
         print("Wrong flag or path type value")
 
 
-def path_generating_time_test(dsm, flag, path_type, desired_cost=1000, path_number=100, print_paths=False):
+def path_generating_time_test(pg, flag, path_type, desired_cost=1000, path_number=100, print_paths=False):
     if (flag == 'd' or flag == 't') and (path_type == 'a_star' or path_type == 'prob'):
         print(f"\n************** Path Generating Time Test  **************")
         print(f"                 Path Type: \'{path_type}\'\n")
         print(f"Ran with desired_cost = {desired_cost} and path_number = {path_number}")
 
-        pg = PathGenerator(velocity=50, flight_height=50, dsm=dsm, pixel_dist=2)
         start_time = time.time()
         paths = pg.gen_paths(flag=flag, constrain=desired_cost, path_type=path_type, to_print=print_paths,
                              path_num=path_number, epsilon=2)
@@ -75,5 +74,7 @@ if __name__ == "__main__":
     dsm_ = create_map(Inputpath, FileName)
 
     pg = PathGenerator(velocity=50, flight_height=50, dsm=dsm_, pixel_dist=2)
-    path_cost_test_1(pg, flag='t', path_type='prob', desired_cost=50, print_paths=True, path_number=2)
-    path_cost_test_1(pg, flag='t', path_type='a_star', desired_cost=50, print_paths=True, path_number=2)
+    # path_cost_test_1(pg, flag='d', path_type='prob', desired_cost=2000, print_paths=False, path_number=10)
+    path_cost_test_1(pg, flag='d', path_type='a_star', desired_cost=2000, print_paths=False, path_number=10)
+    # pg.map_zoom_out(5)
+    path_cost_test_1(pg, flag='d', path_type='a_star', desired_cost=2000, print_paths=False, path_number=10)
