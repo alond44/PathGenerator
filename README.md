@@ -18,7 +18,7 @@ Then, import the map creation function, the PathGenerator class and our constant
 from DSM_Paths.DsmParser import create_map
 from DSM_Paths.path_generator import PathGenerator, PathType, ConstraintType
 ```
-Now you're good to go!
+Now that you're all set, let's get to the main usage steps.
 
 ### 1. Use the parser in order to create the dsm map.
 The Parser is found in DsmParser.py and in order to run it you should use the following code:
