@@ -51,9 +51,9 @@ At this point you need to choose the flight parameters:
 ```python
 pg = PathGenerator(velocity=50, flight_height=150, dsm=_dsm, pixel_dist=2)
 ```
-#### DSM Load Alternative:
+#### DSM Loading Alternative:
 
-If you did not initiate the dsm  map in the constractor (passed `dsm=None`) you'll need to use the `init_map` method in order to use the instance you've created.
+If you did not initiate the dsm  map in the constractor (passed `dsm=None`) you'll need to use the `init_map` method before you can use the other PathGenerator methods.
 
 ```python
 def init_map(self, input_path=None, file_name=None, save_tif=False, pixel_dist=2.0)
@@ -173,6 +173,12 @@ At each point the agent decides which place to go from 8-ways opportunities by r
 
 As could be seen from the result, this algorithm created more "localy wandering" path that hasn't spread much over the city.
 
+##### Method Call Example
+
+```python
+pg.gen_paths(flag=ConstraintType.DISTANCE, constraint=1500, path_type=PathType.AREA_EXPLORE, start_location=None, path_num=1, to_print=True, weight=2)
+```
+
 #### Extensive Path- Weighted A* Path
 The second algorithm we have implemented was a weighted A* algorithm.
 The Path was created by sampling random points in the map while calculating a optimal path (or suboptimal path bounded to weight*optimal_path) between those points.
@@ -180,3 +186,9 @@ The Path was created by sampling random points in the map while calculating a op
 <img src="https://github.com/alond44/PathGenerator/blob/main/Results/simple_example_Weighted_A_Star.png" width="600">
 
 As could be seen from the result, this algorithm created more distributed path that explore much bigger parts of the city.
+
+##### Method Call Example
+
+```python
+pg.gen_paths(flag=ConstraintType.DISTANCE, constraint=1500, path_type=PathType.MAP_ROAM, start_location=None, path_num=1, to_print=True, weight=2)
+```
