@@ -104,7 +104,7 @@ Return value - A list of 'path_num' paths.
 #### Usage Example
 
 ```python
-pg.gen_paths(flag='d', constrain=1000, path_type='a_star', start_location=[150, 150], path_nums=1, to_print=True, epsilon=2)
+pg.gen_paths(flag='d', constrain=1000, path_type='a_star', start_location=[150, 150], path_nums=1, to_print=True, weight=2)
 ```
 
 
