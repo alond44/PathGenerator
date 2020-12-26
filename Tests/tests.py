@@ -80,8 +80,8 @@ if __name__ == "__main__":
     pg = PathGenerator(velocity=50, flight_height=50, dsm=dsm_, pixel_dist=2)
     # path_cost_test_1(pg, flag='d', path_type='prob', desired_cost=2000, print_paths=False, path_number=10)
     path_cost_test_1(pg, flag=ConstraintType.DISTANCE, path_type=PathType.MAP_ROAM, desired_cost=2000,
-                     print_paths=False, path_number=10)
+                     print_paths=True, path_number=2)
     pg.map_zoom_out(5)
     path_cost_test_1(pg, flag=ConstraintType.DISTANCE, path_type=PathType.MAP_ROAM, desired_cost=2000,
-                     print_paths=False, path_number=10)
+                     print_paths=True, path_number=2)
 

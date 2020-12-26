@@ -75,9 +75,7 @@ class PathGenerator:
             self._x_lower_bound, self._y_lower_bound, self._x_upper_bound, self._y_upper_bound = \
                 self.__bound_map_main_area()
 
-
-
-    def gen_pathsself, flag: ConstraintType, constraint: float, path_type: PathType, start_location=None, path_num=1,
+    def gen_paths(self, flag: ConstraintType, constraint: float, path_type: PathType, start_location=None, path_num=1,
                   to_print=False, weight=1.0):
         """
          Parameters
@@ -127,8 +125,8 @@ class PathGenerator:
                 for i in range(path_num):
                     if need_new_start_pos:
                         start_location = self._gen_random_point_under_constraints()
-                    paths += [self.__gen_path_weighted_astar(start_location=start_location, max_cost=constraint,
-                                                             pixel_cost=pixel_cost, weight=weight)]
+                    paths += [self.__gen_path_weighted_a_star(start_location=start_location, max_cost=constraint,
+                                                              pixel_cost=pixel_cost, weight=weight)]
 
             else:
                 print('Path type is not one of the correct path generating ways.')
@@ -347,7 +345,6 @@ class PathGenerator:
         """The heuristic function we used - Manhattan distance."""
         return (abs(goal[0] - location[0]) + abs(goal[1] - location[1])) * self._pixel_dist * epsilon
 
-    # Alon's Note: Shouldn't it have "__" prefix?
     def __weighted_a_star(self, start_location, end_location, weight):
         """
         This function calculates weighted A* algorithm between start_location and end_location.
@@ -383,7 +380,7 @@ class PathGenerator:
                             open_set.add(tuple(neighbor))
         return []
 
-    def __gen_path_weighted_astar(self, start_location: list, max_cost: float, pixel_cost: float, weight: float = 1.0):
+    def __gen_path_weighted_a_star(self, start_location: list, max_cost: float, pixel_cost: float, weight: float = 1.0):
         """
         This method creates a path from the given starting location to a randomized end
         location with the cost of max_cost.
