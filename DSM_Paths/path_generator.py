@@ -317,10 +317,12 @@ class PathGenerator:
         path = [cur_pos]
         directions = [[-1, 0], [0, -1], [1, 0], [0, 1], [1, 1], [1, -1], [-1, 1], [-1, -1]]
         last_move = 0
+        last_legal_move = 0
         path_cost = 0
         while True:
             new_pos_option = [sum(x) for x in zip(directions[last_move], cur_pos)]
             if self._can_fly_over_in_bound(new_pos_option) and random.randrange(0, 100) <= 96:
+                last_legal_move = last_move
                 path += [new_pos_option]
 
                 x_dist_squared = math.pow(new_pos_option[0] - cur_pos[0], 2)
@@ -328,14 +330,13 @@ class PathGenerator:
                 path_cost += math.sqrt(x_dist_squared + y_dist_squared) * pixel_cost
 
                 if abs(max_cost - path_cost) < pixel_cost:
-                    path.pop()
                     return path
 
                 cur_pos = new_pos_option
             else:
                 while True:
                     move = random.randrange(0, 8)
-                    sum_temp = [sum(x) for x in zip(directions[last_move], directions[move])]
+                    sum_temp = [sum(x) for x in zip(directions[last_legal_move], directions[move])]
                     if sum_temp != [0, 0]:
                         break
                 last_move = move
@@ -384,14 +385,14 @@ class PathGenerator:
         This method creates a path from the given starting location to a randomized end
         location with the cost of max_cost.
         """
-        path = []
+        path = [start_location]
         cur_start = start_location
         while True:
             next_goal = self._gen_random_point_under_constraints()  # Note: replaced the loop with this method.
-            path += self.__weighted_a_star(cur_start, next_goal, weight)
+            path += self.__weighted_a_star(cur_start, next_goal, weight)[1:]
             cur_start = path[-1]
-            if len(path) * pixel_cost > max_cost:
-                return path[:int(max_cost / pixel_cost)]
+            if (len(path) - 1) * pixel_cost > max_cost:
+                return path[:int(max_cost / pixel_cost) + 1]
 
     def _gen_random_point_under_constraints(self):
         """
