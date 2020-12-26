@@ -12,7 +12,7 @@ If needed, a requirements.txt file is included and can be installed on any conda
 
 `conda install --file requirements.txt`
 
-Then, import the map creation function, the PathGenerator class and the other constant classes:
+Then, import the map creation function, the PathGenerator class and our constants classes:
 
 ```python
 from DSM_Paths.DsmParser import create_map
