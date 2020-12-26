@@ -131,7 +131,7 @@ pg.gen_paths(flag='d', constraint=1000, path_type='a_star', start_location=[150,
 ```
 
 
-### Extras
+### Extra Methods
 
 #### Path Printer
 
@@ -152,7 +152,7 @@ pg.print_path(path=my_path)
 ```python
 def calc_path_distance(self, path: list)
 ```
-This method recieve a path and returns the path's distance on the instance's map.
+This method receives a path and returns the path's distance on the instance's map.
 
 #### Path Travel Time Calculator
 
@@ -160,11 +160,11 @@ This method recieve a path and returns the path's distance on the instance's map
 def calc_path_travel_time(self, path: list)
 ```
 
-This method recieve a path and returns the path's travel duration on the instance's map.
+This method receives a path and returns the path's travel duration on the instance's map.
 
 ## Our Results and Algorithm Explanation:
 
-### Simple Example and Algorithm
+### Algorithms and Simple Examples
 #### Local Path- Probability Random Walk Path
 The first kind of algorithm we have imlemented in order to create the path was a "random surfer".
 At each point the agent decides which place to go from 8-ways opportunities by random, with the limitation of not going back from the same way that we came from (so in practice 7-ways selection).
@@ -192,3 +192,30 @@ As could be seen from the result, this algorithm created more distributed path t
 ```python
 pg.gen_paths(flag=ConstraintType.DISTANCE, constraint=1500, path_type=PathType.MAP_ROAM, start_location=None, path_num=1, to_print=True, weight=2)
 ```
+
+### Tests Results
+
+The tests.py holds these function calls:
+
+```python
+    simple_example(pg)
+    path_generating_error_test(pg, flag=ConstraintType.DISTANCE, desired_cost=2001, path_num=4)
+    path_generating_error_test(pg, flag=ConstraintType.TIME, desired_cost=50, path_num=4)
+    path_generating_calculation_time_test(pg, flag=ConstraintType.DISTANCE, desired_cost=2001, path_num=4)
+    path_generating_calculation_time_test(pg, flag=ConstraintType.TIME, desired_cost=50, path_num=4)
+```
+
+We Used them to print the simple example we showed above and to test:
+1. The average error of our algorithms (the difference between the given constraint and the resulted paths travel time or distance).
+2. The average path calculation duration.
+And how are both affected by the zoom in/out methods. 
+
+The results weren't surprising.
+The zoom in method caused longer calculation time but resulted in a much smaller as we passed a bigger multiplier.
+On the flip side, zoom out had the opposite affect, the calculation time shortened but it resulted a bigger constraint error.
+Furthermore, we can notice that the distance error in our Weighted-A* runs are dependent of the width a pixel represent in real life. Meaning an error can't be larger then the width of a pixel but we are limited to make 'pixel_dist' sized steps from one point to it's neighbore in Weighted-A* (we allow movement a pixel up, down, left and right - no diagonals).
+The probabilistic paths aren't limited to 'pixel_dist' sized steps (as we allow diagonal moves to neighbors) so this point does not apply to them.
+
+#### Note
+We tested every combination of constraint type and path type (4 combinations) in both the error test and calculation time test.
+
