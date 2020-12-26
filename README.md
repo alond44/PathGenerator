@@ -53,7 +53,7 @@ pg = PathGenerator(velocity=50, flight_height=150, dsm=_dsm, pixel_dist=2)
 ```
 #### DSM Load Alternative:
 
-If you did not initiate the dsm  map in the constractor (passed `None`) you'll need to use the `init_map` method in order to use the instance you've created
+If you did not initiate the dsm  map in the constractor (passed `dsm=None`) you'll need to use the `init_map` method in order to use the instance you've created.
 
 ```python
 def init_map(self, input_path=None, file_name=None, save_tif=False, pixel_dist=2.0)
