@@ -1,6 +1,6 @@
 import math
 import random
-from enum import Enum
+from enum import Enum, unique, auto
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -10,14 +10,16 @@ import numpy as np
 from DSM_Paths.DsmParser import create_map
 
 
+@unique
 class PathType(Enum):
-    MAP_ROAM = 0
-    AREA_EXPLORE = 1
+    MAP_ROAM = auto()
+    AREA_EXPLORE = auto()
 
 
-class PathConstraint(Enum):
-    TIME = 0
-    DISTANCE = 1
+@unique
+class ConstraintType(Enum):
+    TIME = auto()
+    DISTANCE = auto()
 
 
 class PathGenerator:
@@ -47,12 +49,14 @@ class PathGenerator:
         if dsm is not None:
             self._dsm = dsm
             self._map_side = len(dsm)
+            self.__process_map()
+            self.__pad_map()
+            # These fields are used to determine the boundaries of the map (where the object appear).
+            self._x_lower_bound, self._y_lower_bound, self._x_upper_bound, self._y_upper_bound = \
+                self.__bound_map_main_area()
         else:
             self._dsm = None
             print('Need to initiate map using init_map before we start.')
-        self.__process_map()
-        # These fields are used to determine the boundaries of the map (where the object appear).
-        self._x_lower_bound, self._y_lower_bound, self._x_upper_bound, self._y_upper_bound = self.__bound_map_main_area()
 
     def init_map(self, input_path=None, file_name=None, save_tif=False, pixel_dist=2):
         """
@@ -65,24 +69,27 @@ class PathGenerator:
             self._dsm = create_map(input_path, file_name, save_tif)
             self._map_side = len(self._dsm)
             self._pixel_dist = pixel_dist
-        self.__process_map()
-        # Updating the map boundary values.
-        self._x_lower_bound, self._y_lower_bound, self._x_upper_bound, self._y_upper_bound = self.__bound_map_main_area()
+            self.__process_map()
+            self.__pad_map()
+            # Updating the map boundary values.
+            self._x_lower_bound, self._y_lower_bound, self._x_upper_bound, self._y_upper_bound = \
+                self.__bound_map_main_area()
 
     # TODO: explain the epsilon in the documentation.
-    def gen_paths(self, flag, constrain, path_type, start_location=None, path_num=1, to_print=False, epsilon=1.0):
+    def gen_paths(self, flag: ConstraintType, constraint: float, path_type: PathType, start_location=None, path_num=1,
+                  to_print=False, epsilon=1.0):
         """
          Parameters
         ---------
-        flag : str
-            Will hold either 'd' for distance constraint or 't' for time constraint.
-        constrain : float
+        flag : ConstraintType
+            Will hold either ConstraintType.DISTANCE for distance constraint or ConstraintType.TIME for time constraint.
+        constraint : float
             Either the paths' length in meters for distance constrained paths or the travel time for time
             in seconds constrained paths.
-        path_type
+        path_type : PathType
             The kind of path generating algorithm used.
-            Will hold either 'prob' for probability random path and 'a_star' for A* generated path to
-            random spots.
+            Will hold either PathType.AREA_EXPLORE for probability random path and PathType.MAP_ROAM for A*
+            generated path to random spots.
         start_location : list
             The path's first point. If None is passed or the given point is not valid a random one will
             be generated.
@@ -93,32 +100,31 @@ class PathGenerator:
         """
         if self._dsm is not None:
             need_new_start_pos = start_location is None or not self._can_fly_over_in_bound(start_location)
-            if flag != 'd' and flag != 't':
+            if flag != ConstraintType.DISTANCE and flag != ConstraintType.TIME:
                 print('Wrong flag option!')
                 return []
-            if constrain <= 0:
+            if constraint <= 0:
                 print('Constrain should be positive')
                 return []
             pixel_cost = self._pixel_dist
-            if flag == 't':
-                # self._pixel_dis = orig_pixel_dist / self._velocity  # Note: time*velocity = distance -> t = d/v
+            if flag == ConstraintType.TIME:
                 pixel_cost /= self._velocity
             paths = []
-            if path_type == 'prob':
+            if path_type == PathType.AREA_EXPLORE:
                 for i in range(path_num):
                     if need_new_start_pos:
                         start_location = self._gen_random_point_under_constraints()
-                    paths += [self.__gen_path_probability(start_location=start_location, max_cost=constrain,
+                    paths += [self.__gen_path_probability(start_location=start_location, max_cost=constraint,
                                                           pixel_cost=pixel_cost)]
-            elif path_type == 'a_star':
+            elif path_type == PathType.MAP_ROAM:
                 for i in range(path_num):
                     if need_new_start_pos:
                         start_location = self._gen_random_point_under_constraints()
-                    paths += [self.__gen_path_a_star_epsilon(start_location=start_location, max_cost=constrain,
+                    paths += [self.__gen_path_a_star_epsilon(start_location=start_location, max_cost=constraint,
                                                              pixel_cost=pixel_cost, epsilon=epsilon)]
             else:
                 print('Path type is not one of the correct path generating ways.')
-                print('This method except ')
+                print('This method except PathType.AREA_EXPLORE and PathType.MAP_ROAM.')
                 return []
             if to_print:
                 for path in paths:
@@ -187,7 +193,7 @@ class PathGenerator:
                 for y in range(0, len(new_dsm)):
                     new_dsm[x][y] = self._dsm[int(x / multiplier)][int(y / multiplier)]
             self._pixel_dist = self._pixel_dist / multiplier
-            self._dsm = new_dsm
+            self._dsm = np.array(new_dsm)
             self._map_side = len(self._dsm)
             # These fields are used to determine the boundaries of the map (where the object appear).
             self._x_lower_bound, self._y_lower_bound, self._x_upper_bound, self._y_upper_bound = \
@@ -223,13 +229,34 @@ class PathGenerator:
                             maxi = max(maxi, val)
                     new_dsm[x][y] = maxi
             self._pixel_dist = prev_side * self._pixel_dist / self._map_side
-            self._dsm = new_dsm
+            self._dsm = np.array(new_dsm)
             self._map_side = len(self._dsm)
             # These fields are used to determine the boundaries of the map (where the object appear).
             self._x_lower_bound, self._y_lower_bound, self._x_upper_bound, self._y_upper_bound = \
                 self.__bound_map_main_area()
         else:
             print('Need to initiate the dsm map using init_map before using the zoom out method.')
+
+    def calc_path_distance(self, path: list):
+        if path is not None:
+            distance = 0
+            for i in range(len(path) - 1):
+                x_squared = math.pow(path[i + 1][0] - path[i][0], 2)
+                y_squared = math.pow(path[i + 1][1] - path[i][1], 2)
+                distance += math.sqrt(x_squared + y_squared) * self._pixel_dist
+            return distance
+        return 0
+
+    def calc_path_travel_time(self, path: list):
+        if path is not None:
+            travel_time = 0
+            for i in range(len(path) - 1):
+                x_squared = math.pow(path[i + 1][0] - path[i][0], 2)
+                y_squared = math.pow(path[i + 1][1] - path[i][1], 2)
+                distance = math.sqrt(x_squared + y_squared)
+                travel_time += (distance * self._pixel_dist) / self._velocity
+            return travel_time
+        return 0
 
     def __bound_map_main_area(self):
         """
@@ -387,26 +414,16 @@ class PathGenerator:
     def _can_fly_over_in_bound(self, pos):
         return self._in_map_bound(pos) and self._can_fly_over(pos[0], pos[1])
 
-    def calc_path_distance(self, path: list):
-        if path is not None:
-            distance = 0
-            for i in range(len(path) - 1):
-                x_squared = math.pow(path[i + 1][0] - path[i][0], 2)
-                y_squared = math.pow(path[i + 1][1] - path[i][1], 2)
-                distance += math.sqrt(x_squared + y_squared) * self._pixel_dist
-            return distance
-        return 0
-
-    def calc_path_travel_time(self, path: list):
-        if path is not None:
-            travel_time = 0
-            for i in range(len(path) - 1):
-                x_squared = math.pow(path[i + 1][0] - path[i][0], 2)
-                y_squared = math.pow(path[i + 1][1] - path[i][1], 2)
-                distance = math.sqrt(x_squared + y_squared) * self._pixel_dist
-                travel_time += distance / self._velocity
-            return travel_time
-        return 0
+    """
+    Map processing methods. 
+    """
+    def __pad_map(self):
+        row_num, col_num = self._dsm.shape
+        diff = abs(row_num - col_num)
+        if row_num > col_num:
+            self._dsm = np.pad(self._dsm, ((0, 0), (0, diff)), mode='constant', constant_values=0)
+        elif row_num < col_num:
+            self._dsm = np.pad(self._dsm, ((0, diff), (0, 0)), mode='constant', constant_values=0)
 
     def __process_map(self):
         max_pixel = -np.inf
