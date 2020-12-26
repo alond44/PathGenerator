@@ -87,10 +87,8 @@ class PathGenerator:
             in seconds constrained paths.
         path_type : PathType
             The kind of path generating algorithm used.
-
             Will hold either PathType.AREA_EXPLORE for probability random path and PathType.MAP_ROAM for A*
             generated path to random spots.
-
         start_location : list
             The path's first point. If None is passed or the given point is not valid a random one will
             be generated.
@@ -99,9 +97,9 @@ class PathGenerator:
         to_print : bool
             Pass True to print the resulting paths over the dsm map.
         weight : float
-            Pass the weight (>= 1.0) for the heuristic value of weighted astar. If the weight given to this function is epsilon,
-            and the original heuristic function is h_0(x) so the value used by astar woulf be epsilon*h_0(x).
-            Using weighted astar promises a solution of weight times the optimal path between the chosen points.
+            Pass the weight (>= 1.0) for the heuristic value of weighted A*. If the weight given to this function is
+            epsilon, and the original heuristic function is h_0(x) so the value used by A* would be epsilon*h_0(x).
+            Using weighted A* promises a solution of weight times the optimal path between the chosen points.
         """
         if self._dsm is not None:
             need_new_start_pos = start_location is None or not self._can_fly_over_in_bound(start_location)
@@ -243,6 +241,9 @@ class PathGenerator:
             print('Need to initiate map using init_map before we start.')
 
     def calc_path_distance(self, path: list):
+        """
+        This method gets a path and returns the path's distance on the instance's map.
+        """
         if path is not None:
             distance = 0
             for i in range(len(path) - 1):
@@ -253,6 +254,9 @@ class PathGenerator:
         return 0
 
     def calc_path_travel_time(self, path: list):
+        """
+        This method gets a path and returns the path's travel duration on the instance's map.
+        """
         if path is not None:
             travel_time = 0
             for i in range(len(path) - 1):
@@ -299,8 +303,8 @@ class PathGenerator:
 
     def __get_first_nonzero_col(self, indices):
         """
-                This method returns the first cell value, y, of indices in which column number y of the dsm map
-                holds at least one value that is not zero.
+        This method returns the first cell value, y, of indices in which column number y of the dsm map
+        holds at least one value that is not zero.
         """
         if indices is not None:
             for y in indices:
@@ -311,7 +315,8 @@ class PathGenerator:
 
     def __gen_path_probability(self, start_location: list, max_cost: float, pixel_cost: float):
         """
-        TODO: document.
+        This method calculate a path with cost = cost max_cost where a move's cost is calculated as the distance
+        between the two neighbors (sqrt(2) for diagonal neighbors and 1 for non-diagonal ones) multiplied by pixel_cost.
         """
         cur_pos = start_location
         path = [cur_pos]
@@ -347,7 +352,7 @@ class PathGenerator:
 
     def __weighted_a_star(self, start_location, end_location, weight):
         """
-        This function calculates weighted A* algorithm between start_location and end_location.
+        This method calculates weighted A* algorithm between start_location and end_location.
         The weight (epsilon) for weighted A* is the parameter weight.
         """
         open_set = {tuple(start_location)}
@@ -405,13 +410,19 @@ class PathGenerator:
             if self._can_fly_over(rand_x, rand_y):
                 return [rand_x, rand_y]
 
+    """
+    Constraint checks
+    """
+
     def _can_fly_over(self, pos_x, pos_y):
         """This method checks if a position in the dsm map got height value larger then the drone's flight height"""
         return self._dsm[pos_x][pos_y] <= self._flight_height
 
     def _in_map_bound(self, pos):
-        """This method returns true if the position is in the maps main area (without the leading zero height areas
-        on the sides of the map)."""
+        """
+        This method returns true if the position is in the maps main area (without the leading zero height areas
+        on the sides of the map).
+        """
         in_x_bound = self._x_upper_bound >= pos[0] >= self._x_lower_bound
         in_y_bound = self._y_upper_bound >= pos[1] >= self._y_lower_bound
         return in_x_bound and in_y_bound
@@ -422,7 +433,11 @@ class PathGenerator:
     """
     Map processing methods. 
     """
+
     def __pad_map(self):
+        """
+        This method makes sure the dsm map is a square map.
+        """
         row_num, col_num = self._dsm.shape
         diff = abs(row_num - col_num)
         if row_num > col_num:
