@@ -6,6 +6,7 @@ from DSM_Paths.path_generator import PathGenerator, PathType, ConstraintType
 
 
 def simple_example(pg: PathGenerator):
+    print("****************  Simple Example  ****************")
     # Weighted A* path
     pg.gen_paths(flag=ConstraintType.DISTANCE, constraint=1500, path_type=PathType.MAP_ROAM, start_location=None,
                  path_num=1, to_print=True, weight=2)
@@ -42,7 +43,7 @@ def path_generating_error_test(pg: PathGenerator, flag: ConstraintType, desired_
     else:
         constraint = "time"
 
-    print(f"\n************** Path Distance Test  **************\n")
+    print(f"\n************** Path Error Test  **************\n")
     print("\nInitial averages:")
     initial_Astar_error_avg, initial_Astar_distance_avg = get_paths_constraint_error(pg, flag=flag,
                                                                                      path_type=PathType.MAP_ROAM,
@@ -86,22 +87,56 @@ def path_generating_error_test(pg: PathGenerator, flag: ConstraintType, desired_
     print(f"Average error: {Prob_error_avg_zoom_in}\nAverage {constraint}: {Prob_distance_avg_zoom_in}")
 
 
-def path_generating_time_test(pg, flag, path_type, desired_cost=1000, path_number=100, print_paths=False):
-    if (flag == 'd' or flag == 't') and (path_type == 'a_star' or path_type == 'prob'):
-        print(f"\n************** Path Generating Time Test  **************")
-        print(f"                 Path Type: \'{path_type}\'\n")
-        print(f"Ran with desired_cost = {desired_cost} and path_number = {path_number}")
+def get_path_generating_duration(pg, flag, path_type, desired_cost=1000.0, path_number=100, print_paths=False, w=2.0):
+    if (flag == ConstraintType.DISTANCE or flag == ConstraintType.TIME) and \
+            (path_type == PathType.MAP_ROAM or path_type == PathType.AREA_EXPLORE):
 
         start_time = time.time()
-
-        paths = pg.gen_paths(flag=flag, constraint=desired_cost, path_type=path_type, to_print=print_paths,
-                             path_num=path_number, weight=2)
+        pg.gen_paths(flag=flag, constraint=desired_cost, path_type=path_type, to_print=print_paths,
+                     path_num=path_number, weight=w)
         total_time = time.time() - start_time
 
         avg_time = total_time / path_number
-        print(f"The average calculation time of a path of type \'{path_type}\' is: {avg_time} seconds")
+        return avg_time
     else:
         print("Wrong flag or path type value")
+
+
+def path_generating_calculation_time_test(pg: PathGenerator, flag: ConstraintType, desired_cost: float, path_num: int):
+    if flag == ConstraintType.DISTANCE:
+        constraint = "distance"
+    else:
+        constraint = "time"
+    print(f"\n************** Path Calculation Time Test  **************\n")
+    print("\nInitial time average:")
+    initial_Astar_time_average = get_path_generating_duration(pg, flag=flag, path_type=PathType.MAP_ROAM,
+                                                              desired_cost=desired_cost, path_number=path_num, w=2.0)
+    initial_Prob_time_average = get_path_generating_duration(pg, flag=flag, path_type=PathType.AREA_EXPLORE,
+                                                             desired_cost=desired_cost, path_number=path_num)
+    print(f"A*:")
+    print(f"Average calculation time under {constraint} constraint: {initial_Astar_time_average}")
+    print(f"Probabilistic:")
+    print(f"Average calculation time under {constraint} constraint: {initial_Prob_time_average}")
+    pg.map_zoom_out(4)
+    print("\n\nAfter zooming out (2 times the initial map):")
+    Astar_time_average_zoom_out = get_path_generating_duration(pg, flag=flag, path_type=PathType.MAP_ROAM,
+                                                              desired_cost=desired_cost, path_number=path_num, w=2.0)
+    Prob_time_average_zoom_out = get_path_generating_duration(pg, flag=flag, path_type=PathType.AREA_EXPLORE,
+                                                             desired_cost=desired_cost, path_number=path_num)
+    print(f"A*:")
+    print(f"Average calculation time under {constraint} constraint: {Astar_time_average_zoom_out}")
+    print(f"Probabilistic:")
+    print(f"Average calculation time under {constraint} constraint: {Prob_time_average_zoom_out}")
+    pg.map_zoom_in(4)
+    print("\n\nAfter zooming in (2 times the initial map):")
+    Astar_time_average_zoom_in = get_path_generating_duration(pg, flag=flag, path_type=PathType.MAP_ROAM,
+                                                              desired_cost=desired_cost, path_number=path_num, w=2.0)
+    Prob_time_average_zoom_in = get_path_generating_duration(pg, flag=flag, path_type=PathType.AREA_EXPLORE,
+                                                             desired_cost=desired_cost, path_number=path_num)
+    print(f"A*:")
+    print(f"Average calculation time under {constraint} constraint: {Astar_time_average_zoom_in}")
+    print(f"Probabilistic:")
+    print(f"Average calculation time under {constraint} constraint: {Prob_time_average_zoom_in}")
 
 
 if __name__ == "__main__":
@@ -110,7 +145,8 @@ if __name__ == "__main__":
     dsm_ = create_map(Inputpath, FileName)
 
     pg = PathGenerator(velocity=50, flight_height=50, dsm=dsm_, pixel_dist=2)
-    # simple_example(pg)
-    # path_generating_error_test(pg, flag=ConstraintType.DISTANCE, desired_cost=2001, path_num=4)
-    # path_generating_error_test(pg, flag=ConstraintType.TIME, desired_cost=50, path_num=4)
-
+    simple_example(pg)
+    path_generating_error_test(pg, flag=ConstraintType.DISTANCE, desired_cost=2001, path_num=4)
+    path_generating_error_test(pg, flag=ConstraintType.TIME, desired_cost=50, path_num=4)
+    path_generating_calculation_time_test(pg, flag=ConstraintType.DISTANCE, desired_cost=2001, path_num=4)
+    path_generating_calculation_time_test(pg, flag=ConstraintType.TIME, desired_cost=50, path_num=4)

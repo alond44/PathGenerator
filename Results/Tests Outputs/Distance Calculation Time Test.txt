@@ -1,0 +1,22 @@
+************** Path Calculation Time Test  **************
+
+
+Initial time average:
+A*:
+Average calculation time under distance constraint: 1.933448314666748
+Probabilistic:
+Average calculation time under distance constraint: 0.007978737354278564
+
+
+After zooming out (2 times the initial map):
+A*:
+Average calculation time under distance constraint: 0.029261112213134766
+Probabilistic:
+Average calculation time under distance constraint: 0.002493143081665039
+
+
+After zooming in (2 times the initial map):
+A*:
+Average calculation time under distance constraint: 5.900777876377106
+Probabilistic:
+Average calculation time under distance constraint: 0.0072310566902160645

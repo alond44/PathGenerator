@@ -1,0 +1,28 @@
+************** Path Error Test  **************
+
+
+Initial averages:
+A*:
+Average error: 8.881784197001252e-13
+Average time: 49.99999999999911
+Probabilistic:
+Average error: 0.022238123177336533
+Average time: 49.97776187682267
+
+
+After zooming out (2 times the initial map):
+A*:
+Average error: 7.105427357601002e-13
+Average time: 49.99999999999929
+Probabilistic:
+Average error: 0.015408383469864617
+Average time: 49.99909088590037
+
+
+After zooming in (2 times the initial map):
+A*:
+Average error: 2.2168933355715126e-12
+Average time: 50.00000000000222
+Probabilistic:
+Average error: 0.012006511892010963
+Average time: 49.99062550971042

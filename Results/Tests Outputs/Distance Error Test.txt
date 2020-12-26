@@ -1,0 +1,28 @@
+************** Path Error Test  **************
+
+
+Initial averages:
+A*:
+Average error: 1.0
+Average distance: 2000.0
+Probabilistic:
+Average error: 0.9588027155441523
+Average distance: 2000.44992693706
+
+
+After zooming out (2 times the initial map):
+A*:
+Average error: 1.0
+Average distance: 2000.0
+Probabilistic:
+Average error: 2.0887450304547315
+Average distance: 1999.680374315359
+
+
+After zooming in (2 times the initial map):
+A*:
+Average error: 0.0
+Average distance: 2001.0
+Probabilistic:
+Average error: 0.5469350013574399
+Average distance: 2000.4530649986425
