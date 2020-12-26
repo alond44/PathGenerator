@@ -58,7 +58,7 @@ class PathGenerator:
             self._dsm = None
             print('Need to initiate map using init_map before we start.')
 
-    def init_map(self, input_path=None, file_name=None, save_tif=False, pixel_dist=2):
+    def init_map(self, input_path=None, file_name=None, save_tif=False, pixel_dist=2.0):
         """
         This method loads the DSM map to an instance using a binary file representing it. The binary file must be in
         a directory named 'BinFiles' inside the 'input_path' directory.
@@ -140,48 +140,6 @@ class PathGenerator:
             print('Need to initiate map using init_map before we start.')
             return []
 
-    def print_path(self, points=None, path_color='r', path_style='--'):
-        """
-        Outputs the map with the given path on it.
-
-         Parameters
-        ----------
-        points : A 2D list.
-            The points that makes the path. points[0] holds the x values of the path's points and points[1] holds
-            the y values.
-        path_color : str
-            A single character indicating the paths color. The default value will create a red path.
-        path_style : str
-            A string that represent the graphing style. The default is dashed line.
-
-         See Also
-        --------
-        Examples for path_color and path_style can be found in the plot description
-        here: https://matplotlib.org/2.1.1/api/_as_gen/matplotlib.pyplot.plot.html
-        """
-        if self._dsm is not None:
-            figure(num=None, figsize=(8, 6))
-            plot_style = path_color + path_style
-            plt.figure(1)
-            plt.imshow(self._dsm)
-            if points is not None and len(points) >= 2:
-                x_list = []
-                y_list = []
-                for point in points:
-                    x_list += [point[0]]
-                    y_list += [point[1]]
-                plt.plot(y_list, x_list, plot_style)
-                # printing the path's start and end points with their descriptions on the map
-                start_patch = patches.Patch(color='cyan', label='Path\'s start')
-                end_patch = patches.Patch(color='blue', label='Path\'s end')
-                plt.legend(handles=[start_patch, end_patch], bbox_to_anchor=(1.32, 1), loc='upper right')
-                plt.plot(y_list[0], x_list[0], 'c.')
-                plt.plot(y_list[-1], x_list[-1], 'b.')
-
-            plt.show()
-        else:
-            print('Need to initiate map using init_map before we start.')
-
     def map_zoom_in(self, multiplier: int):
         """
         Enhancing the dsm resolution by the given multiplier.
@@ -242,6 +200,47 @@ class PathGenerator:
                 self.__bound_map_main_area()
         else:
             print('Need to initiate the dsm map using init_map before using the zoom out method.')
+
+    def print_path(self, path=None, path_color='r', path_style='--'):
+        """
+        Outputs the map with the given path on it.
+
+         Parameters
+        ----------
+        path : A 2D list.
+            The points that makes the path. points[i] holds the i's point of the path.
+        path_color : str
+            A single character indicating the paths color. The default value will create a red path.
+        path_style : str
+            A string that represent the graphing style. The default is dashed line.
+
+         See Also
+        --------
+        Examples for path_color and path_style can be found in the plot description
+        here: https://matplotlib.org/2.1.1/api/_as_gen/matplotlib.pyplot.plot.html
+        """
+        if self._dsm is not None:
+            figure(num=None, figsize=(8, 6))
+            plot_style = path_color + path_style
+            plt.figure(1)
+            plt.imshow(self._dsm)
+            if path is not None and len(path) >= 2:
+                x_list = []
+                y_list = []
+                for point in path:
+                    x_list += [point[0]]
+                    y_list += [point[1]]
+                plt.plot(y_list, x_list, plot_style)
+                # printing the path's start and end points with their descriptions on the map
+                start_patch = patches.Patch(color='cyan', label='Path\'s start')
+                end_patch = patches.Patch(color='blue', label='Path\'s end')
+                plt.legend(handles=[start_patch, end_patch], bbox_to_anchor=(1.32, 1), loc='upper right')
+                plt.plot(y_list[0], x_list[0], 'c.')
+                plt.plot(y_list[-1], x_list[-1], 'b.')
+
+            plt.show()
+        else:
+            print('Need to initiate map using init_map before we start.')
 
     def calc_path_distance(self, path: list):
         if path is not None:

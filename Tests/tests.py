@@ -1,5 +1,4 @@
 import time
-import numpy as np
 from pathlib import Path
 
 from DSM_Paths.DsmParser import create_map
