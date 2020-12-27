@@ -92,9 +92,8 @@ These effects will be demonstrated in the results section.
 def map_zoom_out(self, multiplier: int)
 ```
 
-The argument multiplier serves the same purpose as it does in the zoom in method. 
-#TODO: sentence isn't clear
-For this call: `pg.map_zoom_out(x)` this method will merge every group the map's pixel in to squares (with `x` pixel in each side) and then merge them in to a single pixel with a height value of the maximum pixel height value from the merged pixel group.
+The argument multiplier serves the same purpose as it does in the zoom in method.
+For this call: `pg.map_zoom_out(x)` this method will group the map's pixels to squares (with `x` pixels in each side) and then merge them into a single pixel with a height value of the maximum pixel height value from the merged pixel group.
 'pg.map_zoom_out(x)' call essentially reverse the effect of 'pg.map_zoom_in(x)' if one was called earlier (it revert the map back to it's state before the zoom in call). However, a zoom out method call does not have to come after a zoom in call and the map's side doesn't have to be divisable by x (refer to the illustration bellow for an example). 
 
 This method's advantages and disadvantages are the opposite from those of the zoom in method.
