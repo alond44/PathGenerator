@@ -94,7 +94,8 @@ def map_zoom_out(self, multiplier: int)
 
 The argument multiplier serves the same purpose as it does in the zoom in method. 
 #TODO: sentence isn't clear
-A call 'pg.map_zoom_out(x)' will reverse the effect of 'pg.map_zoom_in(x)' and will make no change to the map. However a zoom out method call does not have to come after a call to zoom in. It can be called indepentently and in that case the method will merge every x pixels to one with a height value of the maximum pixel in the pixel group that was merged.
+For this call: `pg.map_zoom_out(x)` this method will merge every group the map's pixel in to squares (with `x` pixel in each side) and then merge them in to a single pixel with a height value of the maximum pixel height value from the merged pixel group.
+'pg.map_zoom_out(x)' call essentially reverse the effect of 'pg.map_zoom_in(x)' if one was called earlier (it revert the map back to it's state before the zoom in call). However, a zoom out method call does not have to come after a zoom in call and the map's side doesn't have to be divisable by x (refer to the illustration bellow for an example). 
 
 This method's advantages and disadvantages are the opposite from those of the zoom in method.
 
@@ -115,10 +116,9 @@ def gen_paths(self, flag: ConstraintType, constraint: float, path_type: PathType
 ```
 
 parameters:
-#TODO: change the parameters to the enums
-* flag: Will hold either 'd' for distance constraint or 't' for time constraint.
+* flag: Will hold either ConstraintType.DISTANCE for distance constraint or ConstraintType.TIME for time constraint.
 * constraint: Either the paths' length in meters for distance constrained paths or the travel time for time in seconds constrained paths.
-* path_type: 'prob' or 'a_star' as will be explain in more details later- 'prob' creates a simple path using random walk in the map while 'a_star' create path using weighted a* algorithm between some randome sampled points.
+* path_type: The kind of path generating algorithm used. Will hold either PathType.AREA_EXPLORE for probability random path and PathType.MAP_ROAM for weighted A* generated path to random spots.
 * start_location: The path's first point. If None is passed or the given point is not valid a random one will be generated.
 * path_num: The number of paths wanted.
 * to_print: Pass True to print the resulting paths over the dsm map.
