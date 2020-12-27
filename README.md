@@ -1,10 +1,14 @@
 # Path Generator
 
 ## Introduction
-In the following explanation we'll demonstrate how to use our Path Generating system in order to create paths for the drone over the city, adjust the different parameters to meet different flight requirements and get the outputed paths. After that we'll show some result generated using our code and explain the pros and cons of the two methods we implemented.
+In the following explanation we'll demonstrate how to use our Path Generating system in order to: 
+* Create paths for the drone over the city. 
+* Adjust the different parameters to meet different flight requirements 
+* Get the outputed paths.
+After that, we'll show some result generated using our code and explain the pros and cons of the two methods we implemented.
 
 ## How to Use
-All of our code is inside a python class named PathGenerator. In order to use it you should follow the following steps.
+All of our code is inside a python class named PathGenerator. In order to use it you should follow the steps below.
 
 ### 0. Package Requirments and Imports.
 
@@ -12,7 +16,7 @@ If needed, a requirements.txt file is included and can be installed on any conda
 
 `conda install --file requirements.txt`
 
-Then, import the map creation function, the PathGenerator class and our constants classes:
+After adapting your environment, import the map creation function, the PathGenerator class and our constants classes:
 
 ```python
 from DSM_Paths.DsmParser import create_map
@@ -53,7 +57,7 @@ pg = PathGenerator(velocity=50, flight_height=150, dsm=_dsm, pixel_dist=2)
 ```
 #### DSM Loading Alternative:
 
-If you did not initiate the dsm  map in the constractor (passed `dsm=None`) you'll need to use the `init_map` method before you can use the other PathGenerator methods.
+If you did not initiate the dsm  map in the constructor (passed `dsm=None`) you'll need to use the `init_map` method before you can use the other PathGenerator methods.
 
 ```python
 def init_map(self, input_path=None, file_name=None, save_tif=False, pixel_dist=2.0)
@@ -76,7 +80,7 @@ This method has some advantages and disadvantages:
 
 * Advantage: The drone's location is more spacific (as every pixel represents a smaller real life area). 
 * Advantage: The difference between the given constraints and the outputed path's cost (distance or time) is smaller. 
-* Disadvantage: The computation time becomes larger.
+* Disadvantage: The computation time becomes longer.
 
 These effects will be demonstrated in the results section.
 
@@ -92,14 +96,14 @@ These effects will be demonstrated in the results section.
 def map_zoom_out(self, multiplier: int)
 ```
 
-The argument multiplier serves the same purpose as it does in the zoom in method.
-For this call: `pg.map_zoom_out(x)` this method will group the map's pixels to squares (with `x` pixels in each side) and then merge them into a single pixel with a height value of the maximum pixel height value from the merged pixel group.
-'pg.map_zoom_out(x)' call essentially reverse the effect of 'pg.map_zoom_in(x)' if one was called earlier (it revert the map back to it's state before the zoom in call). However, a zoom out method call does not have to come after a zoom in call and the map's side doesn't have to be divisable by x (refer to the illustration bellow for an example). 
+The multiplier argument serves the same purpose as it does in the zoom in method.
+For this call: `pg.map_zoom_out(x)` the method will group the map's pixels to squares (with `x` pixels in each side) and then merge them into a single pixel with a height value of the maximum pixel height value out of the merged pixel group.
+'pg.map_zoom_out(x)' call essentially reverse the effect of 'pg.map_zoom_in(x)' if one was called earlier (it revert the map back to it's state before the zoom in call). However, the zoom out method is independent and does not have to be called after a zoom in call.  
 
 This method's advantages and disadvantages are the opposite from those of the zoom in method.
 
 ##### Notes:
-* Using zoom out with multiplier M is possible even when the dsm map dimensions are YxY and Y is not divisable by x.
+* Using zoom out with multiplier M is possible even when the dsm map dimensions are YxY and Y is not divisable by M (refer to the illustration bellow for an example).
 * Using this method might cause information lose due to the max value pixel merge (lower resolution).
 
 
@@ -128,7 +132,7 @@ Return value - A list of 'path_num' paths.
 #### Usage Example
 
 ```python
-pg.gen_paths(flag='d', constraint=1000, path_type='a_star', start_location=[150, 150], path_nums=1, to_print=True, weight=2)
+pg.gen_paths(flag=ConstraintType.DISTANCE, constraint=1000, path_type=PathType.MAP_ROAM, start_location=[150, 150], path_nums=1, to_print=True, weight=2)
 ```
 
 
@@ -140,8 +144,8 @@ pg.gen_paths(flag='d', constraint=1000, path_type='a_star', start_location=[150,
 def print_path(self, path=None, path_color='r', path_style='--')
 ```
 
-This method gets a path and some optinal parameters that control the path's present style.
-Passing a `None` value in the path argument results in printing the instance's dsm map only.
+This method gets a path and some optinal parameters that control the path's print style.
+Passing a `None` value as the path argument results in printing the instance's dsm map only.
 
 ##### Usage Example
 ```python
@@ -167,8 +171,8 @@ This method receives a path and returns the path's travel duration on the instan
 
 ### Algorithms and Simple Examples
 #### Local Path- Probability Random Walk Path
-The first kind of algorithm we have imlemented in order to create the path was a "random surfer".
-At each point the agent decides which place to go from 8-ways opportunities by random, with the limitation of not going back from the same way that we came from (so in practice 7-ways selection).
+The first kind of algorithm we have imlemented in order to create paths was a "random surfer".
+At each point the agent decides which place to go from 8-ways opportunities by random, with the limitation of not going back from the same way that it came from (so in practice 7-ways selection).
 
 <img src="https://github.com/alond44/PathGenerator/blob/main/Results/simple_example_Probabilistic.png" width="600">
 
@@ -177,12 +181,12 @@ As could be seen from the result, this algorithm created more "localy wandering"
 ##### Method Call Example
 
 ```python
-pg.gen_paths(flag=ConstraintType.DISTANCE, constraint=1500, path_type=PathType.AREA_EXPLORE, start_location=None, path_num=1, to_print=True, weight=2)
+pg.gen_paths(flag=ConstraintType.DISTANCE, constraint=1500, path_type=PathType.AREA_EXPLORE, start_location=None, path_num=1, to_print=True)
 ```
 
 #### Extensive Path- Weighted A* Path
 The second algorithm we have implemented was a weighted A* algorithm.
-The Path was created by sampling random points in the map while calculating a optimal path (or suboptimal path bounded to weight*optimal_path) between those points.
+The Path was created by sampling random points in the map while calculating an optimal path (or suboptimal path bounded to weight*optimal_path) between those points.
 
 <img src="https://github.com/alond44/PathGenerator/blob/main/Results/simple_example_Weighted_A_Star.png" width="600">
 
@@ -191,7 +195,7 @@ As could be seen from the result, this algorithm created more distributed path t
 ##### Method Call Example
 
 ```python
-pg.gen_paths(flag=ConstraintType.DISTANCE, constraint=1500, path_type=PathType.MAP_ROAM, start_location=None, path_num=1, to_print=True, weight=2)
+pg.gen_paths(flag=ConstraintType.TIME, constraint=50, path_type=PathType.MAP_ROAM, start_location=None, path_num=1, to_print=True, weight=2)
 ```
 
 ### Tests Results
@@ -206,21 +210,20 @@ The tests.py holds these function calls:
     path_generating_calculation_time_test(pg, flag=ConstraintType.TIME, desired_cost=50, path_num=4)
 ```
 
-We Used them to print the simple example we showed above and to test:
+We used these function calls to print the simple example we showed above and to test:
 1. The average error of our algorithms (the difference between the given constraint and the resulted paths travel time or distance).
 2. The average path calculation duration.
 And how are both affected by the zoom in/out methods. 
 
-The results weren't surprising.
-The zoom in method caused longer calculation time but resulted in a much smaller as we passed a bigger multiplier.
-On the flip side, zoom out had the opposite affect, the calculation time shortened but it resulted a bigger constraint error.
-Furthermore, we can notice that the distance error in our Weighted-A* runs are dependent of the width a pixel represent in real life. Meaning an error can't be larger then the width of a pixel but we are limited to make 'pixel_dist' sized steps from one point to it's neighbor in Weighted-A* (we allow movement a pixel up, down, left and right - no diagonals).
-The probabilistic paths aren't limited to 'pixel_dist' sized steps (as we allow diagonal moves to neighbors) so this point does not apply to them.
+The zoom in method resulted in longer calculation time but caused a much smaller constraint error as we passed a bigger multiplier.
+Zoom out had the opposite affect, the calculation time shortened but it resulted a bigger constraint error.
+Furthermore, we can notice that the distance error in our Weighted-A* runs are dependent of the width a pixel represent in real life. Meaning an error can't be larger then the width of a pixel because we are limited to make 'pixel_dist' sized steps from one point to it's neighbor in Weighted-A* (we allow movement a pixel up, down, left and right - no diagonals).
+As opposed to that, the probabilistic paths aren't limited to 'pixel_dist' sized steps (as we allow diagonal moves to neighbors) so this point does not apply to them.
 
 #### Notes
 * We tested every combination of constraint type and path type (4 combinations) in both the error test and calculation time test.
 * The tests outputs can be found as .png or as .txt files under the 'Results/Tests Outputs' folder. 
 
 ### Summary
-In this project we have implemented 2 different algorithm for calculating path for drone while avoiding obstacles (calculated by the drone height).
-We have shown in this document how we have tested our code and how to use it and the different results we have got from our experiments.
+In this project we have implemented 2 different algorithm for calculating paths for drones while avoiding obstacles (calculated by the drone height).
+We have shown in this document how we have tested our code, how to use it and the different results we have got from our experiments.
