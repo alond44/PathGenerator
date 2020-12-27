@@ -220,8 +220,8 @@ The probabilistic paths aren't limited to 'pixel_dist' sized steps (as we allow 
 
 #### Notes
 * We tested every combination of constraint type and path type (4 combinations) in both the error test and calculation time test.
-* The tests outputs can be found as .png or as .txt files under the Results/Tests Outputs folder. 
+* The tests outputs can be found as .png or as .txt files under the 'Results/Tests Outputs' folder. 
 
-### Summerize
+### Summary
 In this project we have implemented 2 different algorithm for calculating path for drone while avoiding obstacles (calculated by the drone height).
 We have shown in this document how we have tested our code and how to use it and the different results we have got from our experiments.
