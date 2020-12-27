@@ -70,13 +70,13 @@ def map_zoom_in(self, multiplier: int)
 
 * multiplier: The enhance multiplier. Must be > 0. Passing a negative value will cause the method to have no effect.
 
-We've created a way to get more specific with the drone's location by dividing each pixel to a few more so each pixel will represent a smalller real world tile with the same height value.
+We've created a way to get higher resolution of the drone's location by dividing each pixel to a few pixels such that each pixel will represent a smalller real world tile with the same height value.
 
-This method has some pluses and minuses consequences:
+This method has some advantages and disadvantages:
 
-* Plus: The drone's location is more spacific (as every pixel represents a smaller real life area). 
-* Plus: The difference between the given constraints and the outputed path's cost (distance or time) is smaller. 
-* Minus: The computation time lengthen.
+* Advantage: The drone's location is more spacific (as every pixel represents a smaller real life area). 
+* Advantage: The difference between the given constraints and the outputed path's cost (distance or time) is smaller. 
+* Disadvantage: The computation time becomes larger.
 
 These effects will be demonstrated in the results section.
 
@@ -93,13 +93,14 @@ def map_zoom_out(self, multiplier: int)
 ```
 
 The argument multiplier serves the same purpose as it does in the zoom in method. 
+#TODO: sentence isn't clear
 A call 'pg.map_zoom_out(x)' will reverse the effect of 'pg.map_zoom_in(x)' and will make no change to the map. However a zoom out method call does not have to come after a call to zoom in. It can be called indepentently and in that case the method will merge every x pixels to one with a height value of the maximum pixel in the pixel group that was merged.
 
-This method's pluses and minuses are the opposite from those of the zoom in method.
+This method's advantages and disadvantages are the opposite from those of the zoom in method.
 
 ##### Notes:
 * Using zoom out with multiplier M is possible even when the dsm map dimensions are YxY and Y is not divisable by x.
-* Using this method might cause information lose due to the max value pixel merge.
+* Using this method might cause information lose due to the max value pixel merge (lower resolution).
 
 
 ##### Illustration:
@@ -114,6 +115,7 @@ def gen_paths(self, flag: ConstraintType, constraint: float, path_type: PathType
 ```
 
 parameters:
+#TODO: change the parameters to the enums
 * flag: Will hold either 'd' for distance constraint or 't' for time constraint.
 * constraint: Either the paths' length in meters for distance constrained paths or the travel time for time in seconds constrained paths.
 * path_type: 'prob' or 'a_star' as will be explain in more details later- 'prob' creates a simple path using random walk in the map while 'a_star' create path using weighted a* algorithm between some randome sampled points.
