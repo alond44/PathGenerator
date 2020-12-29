@@ -144,7 +144,7 @@ pg.gen_paths(flag=ConstraintType.DISTANCE, constraint=1000, path_type=PathType.M
 def print_path(self, path=None, path_color='r', path_style='--')
 ```
 
-This method gets a path and some optinal parameters that control the path's print style.
+This method gets a path and some optimal parameters that control the path's print style.
 Passing a `None` value as the path argument results in printing the instance's dsm map only.
 
 ##### Usage Example
