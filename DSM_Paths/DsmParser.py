@@ -1,7 +1,6 @@
 import os
 import numpy as np
 import matplotlib as mpl
-import matplotlib.pyplot as plt
 import cv2
 
 mpl.use('TkAgg')  # or can use 'TkAgg', whatever you have/prefer *couldn't run with 'Qt5Agg'...
@@ -44,15 +43,4 @@ def DSMParcer(Inputpath, Filename, SaveTIF):
             cv2.imwrite(fullSaveFile, dsm)
         return lat_org, long_org, alt_org, x_org, y_org, z_org, Wx.item(), Wy.item(), dWx.item(), dWy.item(), dsm
 
-
-def create_map(input_path, file_name, save_tif=False, to_print=False):
-    lat_org, long_org, alt_org, x_org, y_org, z_org, Wx, Wy, dWx, dWy, dsm = DSMParcer(input_path, file_name, save_tif)
-    if to_print:
-        print(f'{lat_org},{long_org},{alt_org}')
-        print(f'{x_org}{y_org}{z_org}')
-        print(f'{Wx},{Wy},{dWx},{dWy}')
-        plt.figure(1)
-        im = plt.imshow(dsm)
-        plt.show()
-    return dsm
 

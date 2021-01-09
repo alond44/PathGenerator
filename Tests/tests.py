@@ -1,8 +1,30 @@
 import time
 from pathlib import Path
+import numpy as np
 
-from DSM_Paths.DsmParser import create_map
+from DSM_Paths.DsmParser import DSMParcer
 from DSM_Paths.path_generator import PathGenerator, PathType, ConstraintType
+
+
+""" ***************  Tests  *************** """
+
+
+def test_zoom_out():
+    map_array = [[0, 0, 0, 0], [0, 1, 2, 0], [3, 4, 5, 0], [6, 7, 8, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+    dsm_ = np.array(map_array)
+    pg = PathGenerator(velocity=7, flight_height=50, dsm=dsm_, origin=(0, 0, 0),
+                       map_dimensions=(6, 4), pixel_dimensions=(5, 10))
+    print("Initial sizes:")
+    pg.print_map_sizes()
+    pg.print_path()
+    zoom_m = 2
+    pg.map_zoom_out(zoom_m)
+    print(f"\nSizes after zoom in x{zoom_m}:")
+    pg.print_map_sizes()
+    pg.print_path()
+
+
+""" ***************  Result Display  *************** """
 
 
 def simple_example(pg: PathGenerator):
@@ -120,9 +142,9 @@ def path_generating_calculation_time_test(pg: PathGenerator, flag: ConstraintTyp
     pg.map_zoom_out(4)
     print("\n\nAfter zooming out (2 times the initial map):")
     Astar_time_average_zoom_out = get_path_generating_duration(pg, flag=flag, path_type=PathType.MAP_ROAM,
-                                                              desired_cost=desired_cost, path_number=path_num, w=2.0)
+                                                               desired_cost=desired_cost, path_number=path_num, w=2.0)
     Prob_time_average_zoom_out = get_path_generating_duration(pg, flag=flag, path_type=PathType.AREA_EXPLORE,
-                                                             desired_cost=desired_cost, path_number=path_num)
+                                                              desired_cost=desired_cost, path_number=path_num)
     print(f"A*:")
     print(f"Average calculation time under {constraint} constraint: {Astar_time_average_zoom_out}")
     print(f"Probabilistic:")
@@ -142,11 +164,22 @@ def path_generating_calculation_time_test(pg: PathGenerator, flag: ConstraintTyp
 if __name__ == "__main__":
     Inputpath = Path(__file__).parent.absolute()
     FileName = 'dsm_binary'
-    dsm_ = create_map(Inputpath, FileName)
+    _, _, _, x_org, y_org, z_org, Wx, Wy, dWx, dWy, dsm_ = DSMParcer(Inputpath, FileName, False)
 
-    pg = PathGenerator(velocity=50, flight_height=50, dsm=dsm_, pixel_dist=2)
-    simple_example(pg)
-    path_generating_error_test(pg, flag=ConstraintType.DISTANCE, desired_cost=2001, path_num=4)
-    path_generating_error_test(pg, flag=ConstraintType.TIME, desired_cost=50, path_num=4)
-    path_generating_calculation_time_test(pg, flag=ConstraintType.DISTANCE, desired_cost=2001, path_num=4)
-    path_generating_calculation_time_test(pg, flag=ConstraintType.TIME, desired_cost=50, path_num=4)
+    pg = PathGenerator(velocity=7, flight_height=50, dsm=dsm_, origin=(x_org, y_org, z_org),
+                       map_dimensions=(Wx, Wy), pixel_dimensions=(dWx, dWy))
+    # pg.gen_paths(ConstraintType.TIME, 50, PathType.MAP_ROAM, path_num=1, to_print=True, weight=1.5)
+    print("Initial sizes:")
+    pg.print_map_sizes()
+    zoom_m = 3
+    pg.map_zoom_out(zoom_m)
+    print(f"\nSizes after zoom in x{zoom_m}:")
+    pg.print_map_sizes()
+    pg.gen_paths(ConstraintType.TIME, 50, PathType.MAP_ROAM, path_num=1, to_print=True, weight=1.5)
+    pg.gen_paths(ConstraintType.TIME, 50, PathType.AREA_EXPLORE, path_num=1, to_print=True)
+
+    # simple_example(pg)
+    # path_generating_error_test(pg, flag=ConstraintType.DISTANCE, desired_cost=2001, path_num=4)
+    # path_generating_error_test(pg, flag=ConstraintType.TIME, desired_cost=50, path_num=4)
+    # path_generating_calculation_time_test(pg, flag=ConstraintType.DISTANCE, desired_cost=2001, path_num=4)
+    # path_generating_calculation_time_test(pg, flag=ConstraintType.TIME, desired_cost=50, path_num=4)
