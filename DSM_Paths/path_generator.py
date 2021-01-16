@@ -48,7 +48,7 @@ class PathGenerator:
             The flight's altitude in meters.
         dsm : List of Lists of floats
             The DSM map. We assume it is squared.
-        origin: tuple of floats TODO: make sure this description is correct.
+        origin: tuple of floats
             A distance vector between the world map's origin and the dsm map's origin. len(origin) must be 3.
         map_dimensions: tuple of floats
             A two value tuple: (<row_number>, <column_number>).
@@ -59,7 +59,6 @@ class PathGenerator:
         stride_multiplier: float
             Adjusts the strides' length. default stride length is 0.6 * velocity must be > 0.
         """
-        # TODO: decide on a constant for __max_recursion_limit.
         # self.__max_recursion_limit = sys.getrecursionlimit() - 10
         self.__max_recursion_limit = 75
         self._velocity = velocity
@@ -100,7 +99,6 @@ class PathGenerator:
             self._org_vector = (x_org, y_org, z_org)
             self._map_dim = (Wx, Wy)
             self._pixel_dim = (dWx, dWy)
-            # TODO: think how to make this more readable.
             self.__adjust_heights()
             # Updating the map boundary values.
             self._x_lower_bound, self._y_lower_bound, self._x_upper_bound, self._y_upper_bound = \
@@ -374,10 +372,9 @@ class PathGenerator:
                 return path
 
             open_set.remove(current)
-            # TODO: delete diagonals
-            directions = [[-1, 0], [1, 0], [0, -1], [0, 1], [1, 1], [1, -1], [-1, 1], [-1, -1]]
+            directions = [[-1, 0], [1, 0], [0, -1], [0, 1]]
             for direction in directions:
-                neighbor = [sum(x) for x in zip(direction, list(current))]  # TODO: get neighbors differently.
+                neighbor = [sum(x) for x in zip(direction, list(current))]
                 if self._can_fly_over_in_bound(neighbor):
                     # TODO: make sure the change to tentative_g_score is correct.
                     move_cost = cost_per_meter * self.__euclidean_distance(current, neighbor)
@@ -510,7 +507,6 @@ class PathGenerator:
         for x in range(self._map_dim[0]):
             for y in range(self._map_dim[1]):
                 if self._is_obstacle((x, y)) and binary_obstacle_map[x][y] == 0:
-                    # TODO: think if using a binary map as a class field is better.
                     obstacle_polygon = ConvexPolygon(self.__get_obstacle_from_point(binary_obstacle_map, (x, y), 1))
                     obstacle_list.append(obstacle_polygon)
         return obstacle_list
