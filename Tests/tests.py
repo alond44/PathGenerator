@@ -1,6 +1,7 @@
 import time
 from pathlib import Path
 import numpy as np
+import sys
 
 from DSM_Paths.DsmParser import DSMParcer
 from DSM_Paths.path_generator import PathGenerator, PathType, ConstraintType
@@ -168,15 +169,9 @@ if __name__ == "__main__":
 
     pg = PathGenerator(velocity=7, flight_height=50, dsm=dsm_, origin=(x_org, y_org, z_org),
                        map_dimensions=(Wx, Wy), pixel_dimensions=(dWx, dWy))
+    pg.print_path()
     # pg.gen_paths(ConstraintType.TIME, 50, PathType.MAP_ROAM, path_num=1, to_print=True, weight=1.5)
-    print("Initial sizes:")
-    pg.print_map_sizes()
-    zoom_m = 3
-    pg.map_zoom_out(zoom_m)
-    print(f"\nSizes after zoom in x{zoom_m}:")
-    pg.print_map_sizes()
-    pg.gen_paths(ConstraintType.TIME, 50, PathType.MAP_ROAM, path_num=1, to_print=True, weight=1.5)
-    pg.gen_paths(ConstraintType.TIME, 50, PathType.AREA_EXPLORE, path_num=1, to_print=True)
+    # pg.gen_paths(ConstraintType.TIME, 50, PathType.AREA_EXPLORE, path_num=1, to_print=True)
 
     # simple_example(pg)
     # path_generating_error_test(pg, flag=ConstraintType.DISTANCE, desired_cost=2001, path_num=4)

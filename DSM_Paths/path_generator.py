@@ -1,13 +1,17 @@
 import math
 import random
+import sys
+# TODO: add rtree to the requirements.txt file.
+from rtree import index
 from enum import Enum, unique, auto
 
-import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-from matplotlib.pyplot import figure
+import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.pyplot import figure
 
 from DSM_Paths.DsmParser import DSMParcer
+from DSM_Paths.convex_polygon import ConvexPolygon
 
 
 @unique
@@ -55,6 +59,9 @@ class PathGenerator:
         stride_multiplier: float
             Adjusts the strides' length. default stride length is 0.6 * velocity must be > 0.
         """
+        # TODO: decide on a constant for __max_recursion_limit.
+        # self.__max_recursion_limit = sys.getrecursionlimit() - 10
+        self.__max_recursion_limit = 75
         self._velocity = velocity
         self._flight_height = flight_height
         if stride_multiplier > 0:
@@ -62,16 +69,21 @@ class PathGenerator:
         else:
             self._stride_length = self.SAMPLE_RATE * velocity
         self.__adjust_stride()
-        if dsm is not None and origin is not None and map_dimensions is not None and pixel_dimensions is not None\
+        if dsm is not None and origin is not None and map_dimensions is not None and pixel_dimensions is not None \
                 and len(origin) == 3 and len(map_dimensions) == 2 and len(pixel_dimensions) == 2:
             self._dsm = dsm
             self._org_vector = origin
             self._map_dim = map_dimensions
             self._pixel_dim = pixel_dimensions
-            self.__process_map()
-            # These fields are used to determine the boundaries of the map (where the object appear).
+            # TODO: think how to make this more readable.
+            self.__adjust_heights()
+            # Updating the map boundary values.
             self._x_lower_bound, self._y_lower_bound, self._x_upper_bound, self._y_upper_bound = \
                 self.__bound_map_main_area()
+            # creating the obstacles.
+            self._obstacle_list = self.__get_obstacle_polygon_list()
+            self._obstacle_index = index.Index()  # creating the obstacle's rtree.
+            self.__initiate_obstacle_index()
         else:
             self._dsm = None
             print('Need to initiate map using init_map before we start.')
@@ -88,10 +100,15 @@ class PathGenerator:
             self._org_vector = (x_org, y_org, z_org)
             self._map_dim = (Wx, Wy)
             self._pixel_dim = (dWx, dWy)
-            self.__process_map()
+            # TODO: think how to make this more readable.
+            self.__adjust_heights()
             # Updating the map boundary values.
             self._x_lower_bound, self._y_lower_bound, self._x_upper_bound, self._y_upper_bound = \
                 self.__bound_map_main_area()
+            # creating the obstacles.
+            self._obstacle_list = self.__get_obstacle_polygon_list()
+            self._obstacle_index = index.Index()  # creating the obstacle's rtree.
+            self.__initiate_obstacle_index()
 
     def gen_paths(self, flag: ConstraintType, constraint: float, path_type: PathType, start_location=None, path_num=1,
                   to_print=False, weight=1.0):
@@ -156,6 +173,7 @@ class PathGenerator:
             print('Need to initiate map using init_map before we start.')
             return []
 
+    # TODO: adapt the zoom methods to handle the polygon changes.
     def map_zoom_in(self, multiplier: int):
         """
         Enhancing the dsm resolution by the given multiplier.
@@ -167,7 +185,8 @@ class PathGenerator:
         if self._dsm is not None:
             if multiplier <= 0:
                 return  # Not allowing a negative enhance multiplier.
-            self._map_dim = (self._map_dim[0] * multiplier, self._map_dim[1] * multiplier)
+            prev_dim = list(self._map_dim)
+            self._map_dim = (prev_dim[0] * multiplier, prev_dim[1] * multiplier)
             new_dsm = [[0 for j in range(self._map_dim[1])] for i in range(self._map_dim[0])]
             for x in range(0, self._map_dim[0]):
                 for y in range(0, self._map_dim[1]):
@@ -177,10 +196,8 @@ class PathGenerator:
             # These fields are used to determine the boundaries of the map (where the object appear).
             self._x_lower_bound *= multiplier
             self._y_lower_bound *= multiplier
-            self._x_upper_bound = math.ceil(self._x_upper_bound * multiplier)
-            self._y_upper_bound = math.ceil(self._y_upper_bound * multiplier)
-            # self._x_lower_bound, self._y_lower_bound, self._x_upper_bound, self._y_upper_bound = \
-            #     self.__bound_map_main_area()
+            self._x_upper_bound = ((self._x_upper_bound + 1) * multiplier) - 1
+            self._y_upper_bound = ((self._y_upper_bound + 1) * multiplier) - 1
         else:
             print('Need to initiate the dsm map using init_map before using the zoom in method.')
 
@@ -199,8 +216,8 @@ class PathGenerator:
         representation of parts of the world map that are not included in the given dsm.
         """
         if self._dsm is not None:
-            prev_dim = self._map_dim
-            new_x_dim = int(prev_dim[0] / multiplier) if prev_dim[0] % multiplier == 0 else\
+            prev_dim = list(self._map_dim)
+            new_x_dim = int(prev_dim[0] / multiplier) if prev_dim[0] % multiplier == 0 else \
                 1 + int(prev_dim[0] / multiplier)
             new_y_dim = int(prev_dim[1] / multiplier) if prev_dim[1] % multiplier == 0 else \
                 1 + int(prev_dim[1] / multiplier)
@@ -226,8 +243,6 @@ class PathGenerator:
             self._y_lower_bound = int(self._y_lower_bound / multiplier)
             self._x_upper_bound = int(self._x_upper_bound / multiplier)
             self._y_upper_bound = int(self._y_upper_bound / multiplier)
-            # self._x_lower_bound, self._y_lower_bound, self._x_upper_bound, self._y_upper_bound = \
-            #    self.__bound_map_main_area()
         else:
             print('Need to initiate the dsm map using init_map before using the zoom out method.')
 
@@ -264,6 +279,10 @@ class PathGenerator:
                 plt.plot(points[0][1], points[0][0], 'c.')
                 plt.plot(points[-1][1], points[-1][0], 'b.')
 
+            # Print obstacle for testing purposes.
+            for obstacle in self._obstacle_list:
+                plt.plot(obstacle.sorted_points[:, 1], obstacle.sorted_points[:, 0], plot_style)
+
             plt.show()
         else:
             print('Need to initiate map using init_map before we start.')
@@ -284,7 +303,7 @@ class PathGenerator:
         if path is not None:
             distance = 0
             for i in range(len(path) - 1):
-                distance += self.__real_life_distance(path[i], path[i + 1])
+                distance += self.__euclidean_distance(path[i], path[i + 1])
             return distance
         return 0
 
@@ -295,7 +314,7 @@ class PathGenerator:
         if path is not None:
             travel_time = 0
             for i in range(len(path) - 1):
-                travel_time += self.__real_life_distance(path[i], path[i + 1]) / self._velocity
+                travel_time += self.__euclidean_distance(path[i], path[i + 1]) / self._velocity
             return travel_time
         return 0
 
@@ -316,7 +335,7 @@ class PathGenerator:
                 last_legal_move = last_move
                 path += [new_pos_option]
 
-                path_cost += self.__real_life_distance(new_pos_option, cur_pos) * cost_per_meter
+                path_cost += self.__euclidean_distance(new_pos_option, cur_pos) * cost_per_meter
 
                 if abs(max_cost - path_cost) < cost_per_meter * max(self._pixel_dim[0], self._pixel_dim[1]):
                     return path
@@ -331,8 +350,8 @@ class PathGenerator:
                 last_move = move
 
     def __h(self, location, goal, epsilon):
-        """The heuristic function we used - aerial distance."""
-        return self.__real_life_distance(goal, location) * epsilon
+        """The heuristic function we used - euclidean distance."""
+        return self.__euclidean_distance(goal, location) * epsilon
 
     def __weighted_a_star(self, start_location, end_location, cost_per_meter, weight):
         """
@@ -361,7 +380,7 @@ class PathGenerator:
                 neighbor = [sum(x) for x in zip(direction, list(current))]  # TODO: get neighbors differently.
                 if self._can_fly_over_in_bound(neighbor):
                     # TODO: make sure the change to tentative_g_score is correct.
-                    move_cost = cost_per_meter * self.__real_life_distance(current, neighbor)
+                    move_cost = cost_per_meter * self.__euclidean_distance(current, neighbor)
                     tentative_g_score = g_score.get(current, float('inf')) + move_cost
                     if tentative_g_score < g_score.get(tuple(neighbor), float('inf')):
                         came_from[tuple(neighbor)] = current
@@ -393,9 +412,9 @@ class PathGenerator:
     Constraint checks
     """
 
-    def _can_fly_over(self, pos_x, pos_y):
+    def _can_fly_over(self, pos):
         """This method checks if a position in the dsm map got height value larger then the drone's flight height"""
-        return self._dsm[pos_x][pos_y] <= self._flight_height
+        return self._dsm[pos[0]][pos[1]] <= self._flight_height
 
     def _in_map_bound(self, pos):
         """
@@ -407,7 +426,10 @@ class PathGenerator:
         return in_x_bound and in_y_bound
 
     def _can_fly_over_in_bound(self, pos):
-        return self._in_map_bound(pos) and self._can_fly_over(pos[0], pos[1])
+        return self._in_map_bound(pos) and self._can_fly_over(pos)
+
+    def _is_obstacle(self, pos):
+        return self._in_map_bound(pos) and not self._can_fly_over(pos)
 
     """
     Map processing methods. 
@@ -466,15 +488,51 @@ class PathGenerator:
             for j in range(self._map_dim[1]):
                 self._dsm[i][j] = abs(self._dsm[i][j] + self._org_vector[2])
 
+    def __get_obstacle_from_point(self, binary_map, pos, depth):
+        x = pos[0]
+        y = pos[1]
+        # Important note: is_obstacle checks if a point is in map bound.
+        if self._is_obstacle(pos) and binary_map[x][y] == 0:
+            binary_map[x][y] = 1
+            # Note: was- {(x, y), (x + 1, y), (x, y + 1), (x + 1, y + 1)}
+            point_set = {(x - 0.5, y - 0.5), (x + 0.5, y - 0.5), (x - 0.5, y + 0.5), (x + 0.5, y + 0.5)}
+            if depth < self.__max_recursion_limit:
+                point_set = point_set.union(self.__get_obstacle_from_point(binary_map, (x + 1, y), depth + 1))
+                point_set = point_set.union(self.__get_obstacle_from_point(binary_map, (x, y + 1), depth + 1))
+                point_set = point_set.union(self.__get_obstacle_from_point(binary_map, (x - 1, y), depth + 1))
+                point_set = point_set.union(self.__get_obstacle_from_point(binary_map, (x, y - 1), depth + 1))
+            return point_set
+        return {}
+
+    def __get_obstacle_polygon_list(self):
+        binary_obstacle_map = [[0 for j in range(self._map_dim[1])] for i in range(self._map_dim[0])]
+        obstacle_list = []
+        for x in range(self._map_dim[0]):
+            for y in range(self._map_dim[1]):
+                if self._is_obstacle((x, y)) and binary_obstacle_map[x][y] == 0:
+                    # TODO: think if using a binary map as a class field is better.
+                    obstacle_polygon = ConvexPolygon(self.__get_obstacle_from_point(binary_obstacle_map, (x, y), 1))
+                    obstacle_list.append(obstacle_polygon)
+        return obstacle_list
+
+    def __initiate_obstacle_index(self):
+        for i in range(len(self._obstacle_list)):
+            obstacle = self._obstacle_list[i]
+            self._obstacle_index.insert(i, (obstacle.min_x, obstacle.min_y, obstacle.max_x, obstacle.max_y))
+
     def __process_map(self):
         self.__adjust_heights()
+        return self.__get_obstacle_polygon_list()
 
     """
     Helping methods. 
     """
 
-    def __real_life_distance(self, p1, p2):
-        """This method gets two points on the dsm grid and return the distance between them in real life."""
+    def __euclidean_distance(self, p1, p2):
+        """
+        This method gets two points on the dsm grid and return the euclidean distance between them using the pixels
+        dimension.
+        """
         x_squared_dist = math.pow(self._pixel_dim[0] * abs(p1[0] - p2[0]), 2)
         y_squared_dist = math.pow(self._pixel_dim[1] * abs(p1[1] - p2[1]), 2)
         return math.sqrt(x_squared_dist + y_squared_dist)
@@ -487,7 +545,7 @@ class PathGenerator:
         while True:
             rand_x = random.randrange(self._x_lower_bound, self._x_upper_bound)
             rand_y = random.randrange(self._y_lower_bound, self._y_upper_bound)
-            if self._can_fly_over(rand_x, rand_y):
+            if self._can_fly_over((rand_x, rand_y)):
                 return [rand_x, rand_y]
 
     def __adjust_stride(self):
