@@ -353,7 +353,7 @@ class PathGenerator:
         path_cost = 0
         while True:
             new_pos_option = [sum(x) for x in zip(step, cur_pos)]
-            if self.__is_stride_legal(new_pos_option, cur_pos) and random.randrange(0, 100) <= 96:
+            if self.__is_stride_legal(new_pos_option, cur_pos) and random.randrange(0, 100) <= 80:
                 # the other options from this point are strides without the chosen stride.
                 strides_copy = strides.copy()
                 self._remove_closest_step(strides_copy, step)
@@ -467,7 +467,7 @@ class PathGenerator:
                 cur_world_pos = next_world_pos
                 next_world_pos = self.__convert_map_pos_to_world_pos(path[i + 1])
                 theta = math.atan2(next_world_pos[1] - cur_world_pos[1], next_world_pos[0] - cur_world_pos[0])
-                x, y = cur_world_pos[0] + self._org_vector[0], cur_world_pos[1] + self._org_vector[1]
+                x, y = cur_world_pos[0] + self._org_vector[0][0], cur_world_pos[1] + self._org_vector[1][0]
                 vx, vy = self._velocity * math.cos(theta), self._velocity * math.sin(theta)
                 writer.writerow([x, y, z, vx, vy, 0])
             final_pos = self.__convert_map_pos_to_world_pos(path[-1])
