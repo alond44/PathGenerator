@@ -12,6 +12,7 @@ class ConvexPolygon:
         self.min_x, self.max_x = min(self.sorted_points[:, 0]), max(self.sorted_points[:, 0])
         self.min_y, self.max_y = min(self.sorted_points[:, 1]), max(self.sorted_points[:, 1])
 
+    # TODO: add circles surrounding the checked points.
     def line_intersect(self, p1: list, p2: list):
         sign = -1 if self._calc_signed_area(p1, p2, self.sorted_points[0]) < 0 else 1
         for i in range(1, len(self.sorted_points)):

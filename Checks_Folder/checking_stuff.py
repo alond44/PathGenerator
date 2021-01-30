@@ -1,17 +1,19 @@
-import time
 import math
+import os
+import time
+import csv
+import random
 from pathlib import Path
-from scipy.spatial.qhull import ConvexHull
+
 import matplotlib.pyplot as plt
-from matplotlib.pyplot import figure
+import numpy as np
+from scipy.spatial.qhull import ConvexHull
 
 from DSM_Paths.DsmParser import DSMParcer
-from DSM_Paths.path_generator import PathGenerator, PathType, ConstraintType
-
-import numpy as np
+from DSM_Paths.path_generator import PathGenerator
 
 
-def test_convex_hull():
+def convex_hull_test():
     # generating a random point set.
     points = list(np.random.rand(30, 2))
     np_points = np.array(list(points))
@@ -34,23 +36,19 @@ def test_convex_hull():
     print(f"{min_y} <= y <= {max_y}")
 
 
-def test_class_usage():
-    Inputpath = Path(__file__).parent.absolute()
-    FileName = 'dsm_binary'
-    _, _, _, x_org, y_org, z_org, Wx, Wy, dWx, dWy, dsm_ = DSMParcer(Inputpath, FileName, False)
+def class_usage_test():
+    input_path = Path(__file__).parent.absolute()
+    file_name = 'dsm_binary'
+    _, _, _, x_org, y_org, z_org, wx, wy, dwx, dwy, dsm_ = DSMParcer(input_path, file_name, False)
 
     initial_time = time.time()
     pg = PathGenerator(velocity=7, flight_height=30, dsm=dsm_, origin=(x_org, y_org, z_org),
-                       map_dimensions=(Wx, Wy), pixel_dimensions=(dWx, dWy))
+                       map_dimensions=(wx, wy), pixel_dimensions=(dwx, dwy))
     print(f"PathGenerator initiation time is: {time.time() - initial_time}")
     pg.print_path()
 
 
-def test_python_modulo():
-    # tan 30 value for zero degrees
-    Radians30 = math.radians(30)
-    tan30 = math.tan(Radians30)
-    tan30Rounded = round(tan30, 2)
+def python_modulo_test():
 
     radians = math.radians(15)
     negative_radians = math.radians(-15)
@@ -58,7 +56,7 @@ def test_python_modulo():
     print(f"15 radians: {radians}, -15 radians: {negative_radians}")
 
 
-def test_math_cos():
+def math_cos_test():
     # cos θ value for zero degrees
     radians0 = math.radians(0)
     cos0 = math.tan(radians0)
@@ -86,21 +84,21 @@ def test_math_cos():
     print("cos 60: {}".format(cos60_rounded))
     print("cos 90: {}".format(cos90_rounded))
 
-    indices = [float(i-3600)/10 for i in range(3*3600)]
+    indices = [float(i - 3600) / 10 for i in range(3 * 3600)]
     cos_list = [math.cos(math.radians(indices[i])) for i in range(len(indices))]
     plt.figure(1)
-    plt.plot(indices, [0 for i in range(len(indices))], 'k-')
+    plt.plot(indices, [0] * len(indices), 'k-')
     plt.plot(indices, cos_list, 'g-')
     plt.show()
     sin_list = [math.sin(math.radians(indices[i])) for i in range(len(indices))]
     plt.figure(1)
-    plt.plot(indices, [0 for i in range(len(indices))], 'k-')
+    plt.plot(indices, [0] * len(indices), 'k-')
     plt.plot(indices, sin_list, 'g-')
     plt.show()
 
 
-def test_math_acos_asin():
-    indices = [float(i)/10 for i in range(3600)]
+def math_acos_asin_test():
+    indices = [float(i) / 10 for i in range(3600)]
     cos_list = [math.cos(math.radians(indices[i])) for i in range(len(indices))]
     acos_list = [math.degrees(math.acos(cos_list[i])) for i in range(len(indices))]
     plt.figure(1)
@@ -111,7 +109,7 @@ def test_math_acos_asin():
     plt.show()
 
 
-def test_math_atan2():
+def math_atan2_test():
     print(math.degrees(math.atan2(1, 1)))
     print(math.degrees(math.atan2(1, -1)))
     print(math.degrees(math.atan2(-1, -1)))
@@ -130,23 +128,23 @@ def yielding_method():
         yield idx
 
 
-def test_yield():
+def yield_test():
     for item in yielding_method():
         print(item)
 
 
-def test_possible_degrees():
-    DEGREE_DIVISOR = 8
+def possible_degrees_test():
+    degree_divisor = 8
     cur_deg = 0.0
     max_angle = 180.0
-    possible_degrees = [cur_deg] + [(cur_deg + max_angle) * i / DEGREE_DIVISOR for i in range(1, DEGREE_DIVISOR + 1)] +\
-                       [(cur_deg - max_angle) * i / DEGREE_DIVISOR for i in range(1, DEGREE_DIVISOR + 1)]
+    possible_degrees = [cur_deg] + [(cur_deg + max_angle) * i / degree_divisor for i in range(1, degree_divisor + 1)] +\
+                       [(cur_deg - max_angle) * i / degree_divisor for i in range(1, degree_divisor + 1)]
     print(possible_degrees)
     return possible_degrees
 
 
-def test_possible_strides():
-    possible_degrees = test_possible_degrees()
+def possible_strides_test():
+    possible_degrees = possible_degrees_test()
     strides = []
     for degree in possible_degrees:
         strides.append([math.cos(math.radians(degree)), math.sin(math.radians(degree))])
@@ -156,13 +154,13 @@ def test_possible_strides():
     plt.show()
 
 
-def test_list():
-    l = [0]
-    print(l[0])
-    print(l[-1])
+def list_test():
+    list1 = [0]
+    print(list1[0])
+    print(list1[-1])
 
 
-def test_list_copy():
+def list_copy_test():
     l1 = [0, 1, 2, 3]
     l2 = l1.copy()
     print(l1)
@@ -187,8 +185,25 @@ def slicing_test(idx):
     print(l1)
     print(l2)
 
-# TODO: test rtree intersections.
+
+def directory_test(test_folder):
+    if not (os.path.isdir(test_folder)):
+        os.mkdir(test_folder)
+
+
+def csv_test():
+    current_file_path = f'{Path(__file__).parent.absolute()}/'
+    test_folder = f'{current_file_path}/output_folder/'
+    directory_test(test_folder)
+    for i in range(1, 11):
+        file_name = f'{test_folder}file_{i}.csv'
+        with open(file_name, 'w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(["A", "B", "C"])
+            writer.writerow([i, i*2, i*3])
 
 
 if __name__ == "__main__":
-    slicing_test(3)
+    csv_test()
+    for i in range(10):
+        print(random.uniform(0, 360))

@@ -167,11 +167,21 @@ if __name__ == "__main__":
     FileName = 'dsm_binary'
     _, _, _, x_org, y_org, z_org, Wx, Wy, dWx, dWy, dsm_ = DSMParcer(Inputpath, FileName, False)
 
+    # TODO: monitor the max recursion depth in relation to a pixel's width.
     pg = PathGenerator(velocity=7, flight_height=50, dsm=dsm_, origin=(x_org, y_org, z_org),
-                       map_dimensions=(Wx, Wy), pixel_dimensions=(dWx, dWy))
+                       map_dimensions=(Wx, Wy), pixel_dimensions=(dWx, dWy), max_angle=25.0)
+
+    """
+    constraint = 70
+    error_avg, distance_avg = get_paths_constraint_error(pg, flag=ConstraintType.TIME,
+                                                         path_type=PathType.AREA_EXPLORE, desired_cost=constraint,
+                                                         path_number=50)
+    print(f"Average error: {error_avg}\nAverage constraint: {distance_avg}")
+    """
+    paths = pg.gen_paths(ConstraintType.TIME, 100, PathType.AREA_EXPLORE, path_num=5, to_print=True)
+
     # pg.print_path()
     # pg.gen_paths(ConstraintType.TIME, 50, PathType.MAP_ROAM, path_num=1, to_print=True, weight=1.5)
-    paths = pg.gen_paths(ConstraintType.DISTANCE, 1000, PathType.AREA_EXPLORE, path_num=5, to_print=True)
     # simple_example(pg)
     # path_generating_error_test(pg, flag=ConstraintType.DISTANCE, desired_cost=2001, path_num=4)
     # path_generating_error_test(pg, flag=ConstraintType.TIME, desired_cost=50, path_num=4)
