@@ -198,8 +198,8 @@ class PathGenerator:
                 return  # Not allowing a negative enhance multiplier.
             prev_dim = self._map_dim
             self._map_dim = [prev_dim[0] * multiplier, prev_dim[1] * multiplier]
-            new_dsm = [[0] * self._map_dim[1]] * self._map_dim[0]
-            # new_dsm = [[0 for j in range(self._map_dim[1])] for i in range(self._map_dim[0])]
+            # new_dsm = [[0] * self._map_dim[1]] * self._map_dim[0]
+            new_dsm = [[0 for j in range(self._map_dim[1])] for i in range(self._map_dim[0])]
             for x in range(0, self._map_dim[0]):
                 for y in range(0, self._map_dim[1]):
                     new_dsm[x][y] = self._dsm[int(x / multiplier)][int(y / multiplier)]
@@ -237,8 +237,8 @@ class PathGenerator:
                 1 + int(prev_dim[0] / multiplier)
             new_y_dim = int(prev_dim[1] / multiplier) if prev_dim[1] % multiplier == 0 else \
                 1 + int(prev_dim[1] / multiplier)
-            new_dsm = [[0] * new_y_dim] * new_x_dim
-            # new_dsm = [[0 for j in range(new_y_dim)] for i in range(new_x_dim)]
+            # new_dsm = [[0] * new_y_dim] * new_x_dim
+            new_dsm = [[0 for j in range(new_y_dim)] for i in range(new_x_dim)]
             for x in range(0, new_x_dim):
                 for y in range(0, new_y_dim):
                     maxi = -np.inf
@@ -419,11 +419,12 @@ class PathGenerator:
                 return path
 
             open_set.remove(current)
-            if came_from.get(current) == None:
+            if came_from.get(current) is None:
                 last_point = previous_point
             else:
                 last_point = came_from.get(current)
             strides = self._get_possible_strides(list(current), last_point)  # randomizing the first possible strides
+            num_legal_strides = len(strides)
             for stride in strides:
                 neighbor = [sum(x) for x in zip(stride, current)]
                 if self.__is_stride_legal(neighbor, current):
@@ -438,6 +439,10 @@ class PathGenerator:
                                                                                                          weight)
                         if tuple(neighbor) not in open_set:
                             open_set.add(tuple(neighbor))
+                else:
+                    num_legal_strides -= 1
+            if num_legal_strides == 0:
+                return []
         return []
 
     # TODO: fix the cost calculation.
@@ -452,9 +457,13 @@ class PathGenerator:
         while True:
             next_goal = self._gen_random_point_under_constraints()
             previous_step = None
-            if (len(path) > 1):
+            if len(path) > 1:
                 previous_step = path[-2]
-            path += self.__weighted_a_star(cur_start, next_goal, cost_per_meter, weight, previous_step)[1:]
+            new_path = self.__weighted_a_star(cur_start, next_goal, cost_per_meter, weight, previous_step)
+            if new_path is []:
+                path = path[:-1]
+            else:
+                path += new_path[1:]
             cur_start = path[-1]
             if (len(path) - 1) * self._stride_length * cost_per_meter > max_cost:  # TODO: trim the path differently
                 return path[:int((max_cost / cost_per_meter)/ self._stride_length) + 1]
@@ -615,7 +624,8 @@ class PathGenerator:
         # Important note: is_obstacle checks if a point is in map bound.
         if self._is_obstacle(pos) and binary_map[x][y] == 0:
             binary_map[x][y] = 1
-            # Note: was- {(x, y), (x + 1, y), (x, y + 1), (x + 1, y + 1)} to fit the
+            # {(x, y), (x + 1, y), (x, y + 1), (x + 1, y + 1)}
+            # Note: was- {(x - 0.5, y - 0.5), (x + 0.5, y - 0.5), (x - 0.5, y + 0.5), (x + 0.5, y + 0.5)} to fit the
             # obstacles presented on the map when printing. However the dsm numpy array values are these:
             point_set = {(x - 0.5, y - 0.5), (x + 0.5, y - 0.5), (x - 0.5, y + 0.5), (x + 0.5, y + 0.5)}
             if depth < self._max_recursion_limit:
@@ -627,7 +637,6 @@ class PathGenerator:
         return {}
 
     def __get_obstacle_polygon_list(self):
-        # binary_obstacle_map = [[0] * self._map_dim[0]] * self._map_dim[1]
         binary_obstacle_map = [[0 for j in range(self._map_dim[1])] for i in range(self._map_dim[0])]
         obstacle_list = []
         for x in range(self._map_dim[0]):
