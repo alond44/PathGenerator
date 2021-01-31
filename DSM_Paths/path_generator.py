@@ -69,7 +69,7 @@ class PathGenerator:
         self._flight_height = flight_height
         # self.__max_recursion_limit = sys.getrecursionlimit() - 10
         self._max_recursion_limit = 75  # TODO: fix magic number
-        self._max_angle = max_angle if 60.0 >= max_angle >= 20.0 else 45.0
+        self._max_angle = max_angle if 60.0 >= max_angle >= 20.0 else 45.
         if stride_multiplier > 0:
             self._stride_length = self.SAMPLE_RATE * velocity * stride_multiplier
         else:
@@ -171,8 +171,8 @@ class PathGenerator:
                     path = self.__gen_path_probability(start_location=start_location, max_cost=constraint,
                                                        cost_per_meter=cost_per_meter)
                 else:  # meaning path_type is PathType.MAP_ROAM
-                    path = [self.__gen_path_weighted_a_star(start_location=start_location, max_cost=constraint,
-                                                            cost_per_meter=cost_per_meter, weight=weight)]
+                    path = self.__gen_path_weighted_a_star(start_location=start_location, max_cost=constraint,
+                                                            cost_per_meter=cost_per_meter, weight=weight)
                 # TODO: create a csv file with the path's data.
                 self.__create_path_csv_file(path=path, directory=result_folder_path, path_number=i+1)
                 paths += [path]
@@ -397,7 +397,7 @@ class PathGenerator:
         """The heuristic function we used - euclidean distance."""
         return self.__euclidean_distance(goal, location) * weight
 
-    def __weighted_a_star(self, start_location, end_location, cost_per_meter, weight):
+    def __weighted_a_star(self, start_location, end_location, cost_per_meter, weight, previous_point = None):
         """
         This method calculates weighted A* algorithm between start_location and end_location.
         The weight (epsilon) for weighted A* is the parameter weight.
@@ -408,9 +408,10 @@ class PathGenerator:
         f_score = {tuple(start_location): self.__h(start_location, end_location, weight)}
 
         while bool(open_set):
+            print(open_set)
             current = min(open_set, key=lambda x: f_score.get(x, float('inf')))
             # TODO: write an equal method for two points and add a path cost sum and another stopping condition.
-            if current == tuple(end_location):  # The stop condition.
+            if self.__euclidean_distance(current, end_location) <= self._stride_length:  # The stop condition.
                 path = [list(current)]
                 while current in came_from.keys():
                     current = came_from.get(current)
@@ -418,10 +419,14 @@ class PathGenerator:
                 return path
 
             open_set.remove(current)
-            directions = [[-1, 0], [1, 0], [0, -1], [0, 1]]
-            for direction in directions:
-                neighbor = [sum(x) for x in zip(direction, list(current))]
-                if self._can_fly_over_in_bound(neighbor):
+            if came_from.get(current) == None:
+                last_point = previous_point
+            else:
+                last_point = came_from.get(current)
+            strides = self._get_possible_strides(list(current), last_point)  # randomizing the first possible strides
+            for stride in strides:
+                neighbor = [sum(x) for x in zip(stride, current)]
+                if self.__is_stride_legal(neighbor, current):
                     # TODO: make sure the change to tentative_g_score is correct.
                     move_cost = cost_per_meter * self.__euclidean_distance(current, neighbor)
                     tentative_g_score = g_score.get(current, float('inf')) + move_cost
@@ -446,10 +451,13 @@ class PathGenerator:
         cur_start = start_location
         while True:
             next_goal = self._gen_random_point_under_constraints()
-            path += self.__weighted_a_star(cur_start, next_goal, cost_per_meter, weight)[1:]
+            previous_step = None
+            if (len(path) > 1):
+                previous_step = path[-2]
+            path += self.__weighted_a_star(cur_start, next_goal, cost_per_meter, weight, previous_step)[1:]
             cur_start = path[-1]
-            if (len(path) - 1) * cost_per_meter > max_cost:  # TODO: trim the path differently
-                return path[:int(max_cost / cost_per_meter) + 1]
+            if (len(path) - 1) * self._stride_length * cost_per_meter > max_cost:  # TODO: trim the path differently
+                return path[:int((max_cost / cost_per_meter)/ self._stride_length) + 1]
 
     def __create_path_csv_file(self, path: list,  directory: str, path_number: int):
         """
