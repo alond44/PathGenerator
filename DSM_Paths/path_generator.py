@@ -302,7 +302,7 @@ class PathGenerator:
 
             # Print obstacle for testing purposes.
             # for obstacle in self._obstacle_list:
-            #     plt.plot(obstacle.sorted_points[:, 1], obstacle.sorted_points[:, 0], plot_style)
+            #     plt.plot(obstacle.sorted_points[:, 1], obstacle.sorted_points[:, 0], 'c-')
 
             plt.show()
         else:
@@ -607,9 +607,9 @@ class PathGenerator:
         # Important note: is_obstacle checks if a point is in map bound.
         if self._is_obstacle(pos) and binary_map[x][y] == 0:
             binary_map[x][y] = 1
-            # Note: was- {(x - 0.5, y - 0.5), (x + 0.5, y - 0.5), (x - 0.5, y + 0.5), (x + 0.5, y + 0.5)} to fit the
+            # Note: was- {(x, y), (x + 1, y), (x, y + 1), (x + 1, y + 1)} to fit the
             # obstacles presented on the map when printing. However the dsm numpy array values are these:
-            point_set = {(x, y), (x + 1, y), (x, y + 1), (x + 1, y + 1)}
+            point_set = {(x - 0.5, y - 0.5), (x + 0.5, y - 0.5), (x - 0.5, y + 0.5), (x + 0.5, y + 0.5)}
             if depth < self._max_recursion_limit:
                 point_set = point_set.union(self.__get_obstacle_from_point(binary_map, (x + 1, y), depth + 1))
                 point_set = point_set.union(self.__get_obstacle_from_point(binary_map, (x - 1, y), depth + 1))
@@ -619,8 +619,8 @@ class PathGenerator:
         return {}
 
     def __get_obstacle_polygon_list(self):
-        binary_obstacle_map = [[0] * self._map_dim[1]] * self._map_dim[0]
-        # binary_obstacle_map = [[0 for j in range(self._map_dim[1])] for i in range(self._map_dim[0])]
+        # binary_obstacle_map = [[0] * self._map_dim[0]] * self._map_dim[1]
+        binary_obstacle_map = [[0 for j in range(self._map_dim[1])] for i in range(self._map_dim[0])]
         obstacle_list = []
         for x in range(self._map_dim[0]):
             for y in range(self._map_dim[1]):
