@@ -267,6 +267,14 @@ class PathGenerator:
         else:
             print('Need to initiate the dsm map using init_map before using the zoom out method.')
 
+    def print_dots_set(self, open_set):
+        figure(num=None, figsize=(8, 6))
+        plt.figure(1)
+        plt.imshow(self._dsm)
+        points = np.array(list(open_set))
+        plt.plot(points[:, 1], points[:, 0], 'bo')
+        plt.show()
+
     def print_path(self, path=None, path_color='r', path_style='--'):
         """
         Outputs the map with the given path on it.
@@ -397,6 +405,12 @@ class PathGenerator:
         """The heuristic function we used - euclidean distance."""
         return self.__euclidean_distance(goal, location) * weight
 
+    def __check_if_already_inside(self, neighbor, openset):
+        for i in openset:
+            if int(neighbor[0]) == int(i[0]) and int(neighbor[1]) == int(i[1]):
+                return True
+        return False
+
     def __weighted_a_star(self, start_location, end_location, cost_per_meter, weight, previous_point = None):
         """
         This method calculates weighted A* algorithm between start_location and end_location.
@@ -406,11 +420,12 @@ class PathGenerator:
         came_from = {}
         g_score = {tuple(start_location): 0}
         f_score = {tuple(start_location): self.__h(start_location, end_location, weight)}
-
+        debug_flag = False
         while bool(open_set):
-            print(open_set)
+            print(open_set, '\n')
+            if debug_flag:
+                self.print_dots_set(open_set)
             current = min(open_set, key=lambda x: f_score.get(x, float('inf')))
-            # TODO: write an equal method for two points and add a path cost sum and another stopping condition.
             if self.__euclidean_distance(current, end_location) <= self._stride_length:  # The stop condition.
                 path = [list(current)]
                 while current in came_from.keys():
@@ -427,8 +442,10 @@ class PathGenerator:
             num_legal_strides = len(strides)
             for stride in strides:
                 neighbor = [sum(x) for x in zip(stride, current)]
-                if self.__is_stride_legal(neighbor, current):
-                    # TODO: make sure the change to tentative_g_score is correct.
+                #TODO: check if neighbor allready inside open set
+                if self.__check_if_already_inside(neighbor, open_set):
+                    continue
+                if self.__is_stride_legal(neighbor, list(current)):
                     move_cost = cost_per_meter * self.__euclidean_distance(current, neighbor)
                     tentative_g_score = g_score.get(current, float('inf')) + move_cost
                     if tentative_g_score < g_score.get(tuple(neighbor), float('inf')):
@@ -441,11 +458,10 @@ class PathGenerator:
                             open_set.add(tuple(neighbor))
                 else:
                     num_legal_strides -= 1
-            if num_legal_strides == 0:
+            if num_legal_strides == 0 and current == start_location:
                 return []
         return []
 
-    # TODO: fix the cost calculation.
     def __gen_path_weighted_a_star(self, start_location: list, max_cost: float, cost_per_meter: float,
                                    weight: float = 1.0):
         """
@@ -460,7 +476,7 @@ class PathGenerator:
             if len(path) > 1:
                 previous_step = path[-2]
             new_path = self.__weighted_a_star(cur_start, next_goal, cost_per_meter, weight, previous_step)
-            if new_path is []:
+            if not new_path and len(path) > 1:
                 path = path[:-1]
             else:
                 path += new_path[1:]

@@ -168,7 +168,7 @@ if __name__ == "__main__":
     _, _, _, x_org, y_org, z_org, Wx, Wy, dWx, dWy, dsm_ = DSMParcer(Inputpath, FileName, False)
 
     # TODO: monitor the max recursion depth in relation to a pixel's width.
-    pg = PathGenerator(velocity=15, flight_height=50, dsm=dsm_, origin=(x_org, y_org, z_org),
+    pg = PathGenerator(velocity=7, flight_height=50, dsm=dsm_, origin=(x_org, y_org, z_org),
                        map_dimensions=(Wx, Wy), pixel_dimensions=(dWx, dWy), max_angle=20.0)
 
     """
@@ -178,7 +178,7 @@ if __name__ == "__main__":
                                                          path_number=50)
     print(f"Average error: {error_avg}\nAverage constraint: {distance_avg}")
     """
-    paths = pg.gen_paths(ConstraintType.TIME, 50, PathType.MAP_ROAM, path_num=5, to_print=True, weight=1.5)
+    paths = pg.gen_paths(ConstraintType.TIME, 150, PathType.MAP_ROAM, path_num=5, to_print=True, weight=1.5)
 
     # pg.print_path()
     # pg.gen_paths(ConstraintType.TIME, 50, PathType.MAP_ROAM, path_num=1, to_print=True, weight=1.5)
