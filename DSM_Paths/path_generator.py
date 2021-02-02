@@ -411,54 +411,53 @@ class PathGenerator:
                 return True
         return False
 
-    def __weighted_a_star(self, start_location, end_location, cost_per_meter, weight, previous_point = None):
+    def __weighted_a_star(self, start_location, end_location, cost_per_meter, weight, previous_point=None):
         """
         This method calculates weighted A* algorithm between start_location and end_location.
         The weight (epsilon) for weighted A* is the parameter weight.
         """
-        open_set = {tuple(start_location)}
+        if previous_point is None:
+            previous_point = [None]
+        start_state = start_location + previous_point
+        open_set = {tuple(start_state)}
         came_from = {}
-        g_score = {tuple(start_location): 0}
-        f_score = {tuple(start_location): self.__h(start_location, end_location, weight)}
+        g_score = {tuple(start_state): 0}
+        f_score = {tuple(start_state): self.__h(start_location, end_location, weight)}
         debug_flag = False
         while bool(open_set):
-            print(open_set, '\n')
             if debug_flag:
+                print(open_set, '\n')
                 self.print_dots_set(open_set)
-            current = min(open_set, key=lambda x: f_score.get(x, float('inf')))
-            if self.__euclidean_distance(current, end_location) <= self._stride_length:  # The stop condition.
-                path = [list(current)]
-                while current in came_from.keys():
-                    current = came_from.get(current)
-                    path.insert(0, list(current))
+            current = list(min(open_set, key=lambda x: f_score.get(x, float('inf'))))
+            if self.__euclidean_distance(current[:2], end_location) <= self._stride_length:  # The stop condition.
+                path = [current[:2]]
+                while tuple(current) in came_from.keys():
+                    current = came_from.get(tuple(current))
+                    path.insert(0, current[:2])
                 return path
 
-            open_set.remove(current)
-            if came_from.get(current) is None:
-                last_point = previous_point
+            open_set.remove(tuple(current))
+            if current[2] is None:
+                strides = self._get_possible_strides_discrete(current[:2], None)  # randomizing the first possible strides
             else:
-                last_point = came_from.get(current)
-            strides = self._get_possible_strides(list(current), last_point)  # randomizing the first possible strides
+                strides = self._get_possible_strides_discrete(current[:2], current[2:])  # randomizing the first possible strides
+
             num_legal_strides = len(strides)
             for stride in strides:
-                neighbor = [sum(x) for x in zip(stride, current)]
-                #TODO: check if neighbor allready inside open set
-                if self.__check_if_already_inside(neighbor, open_set):
-                    continue
-                if self.__is_stride_legal(neighbor, list(current)):
+                neighbor = [sum(x) for x in zip(stride, current[:2])]
+                if self.__is_stride_legal(neighbor, current[:2]):
                     move_cost = cost_per_meter * self.__euclidean_distance(current, neighbor)
-                    tentative_g_score = g_score.get(current, float('inf')) + move_cost
-                    if tentative_g_score < g_score.get(tuple(neighbor), float('inf')):
-                        came_from[tuple(neighbor)] = current
-                        g_score[tuple(neighbor)] = tentative_g_score
-                        f_score[tuple(neighbor)] = g_score.get(tuple(neighbor), float('inf')) + self.__h(neighbor,
-                                                                                                         end_location,
-                                                                                                         weight)
-                        if tuple(neighbor) not in open_set:
-                            open_set.add(tuple(neighbor))
+                    tentative_g_score = g_score.get(tuple(current), float('inf')) + move_cost
+                    neighbor_state = tuple(neighbor + current[:2])
+                    if tentative_g_score < g_score.get(neighbor_state, float('inf')):
+                        came_from[neighbor_state] = current[:2]
+                        g_score[neighbor_state] = tentative_g_score
+                        f_score[neighbor_state] = tentative_g_score + self.__h(neighbor, end_location, weight)
+                        if neighbor_state not in open_set:
+                            open_set.add(neighbor_state)
                 else:
                     num_legal_strides -= 1
-            if num_legal_strides == 0 and current == start_location:
+            if num_legal_strides == 0 and current[:2] == start_location:
                 return []
         return []
 
@@ -707,6 +706,37 @@ class PathGenerator:
             self._stride_length = self.MAX_STRIDE_LEN
         if self._stride_length < self.MIN_STRIDE_LEN:
             self._stride_length = self.MIN_STRIDE_LEN
+
+    def _get_possible_strides_discrete(self, cur_pos, prev_pos=None):
+        """
+            receives the current position and a previous position (so we can calculate orientation)
+            and returns number of stride options. each stride option will make the drone turn in an angle
+            that is at most max_angle degrees.
+            Note:   - the number of stride options depends on the DEGREE_DIVISOR variable.
+                    - if prev_pos is None the orientation is randomized
+        """
+        if prev_pos is None:
+            cur_deg = random.uniform(0, 360)
+        else:
+            world_cur_pos = self.__convert_map_pos_to_world_pos(cur_pos)
+            world_prev_pos = self.__convert_map_pos_to_world_pos(prev_pos)
+            cur_orientation = [world_cur_pos[0] - world_prev_pos[0], world_cur_pos[1] - world_prev_pos[1]]
+            cur_deg = ((math.degrees(math.atan2(cur_orientation[1], cur_orientation[0])) + 360) % 360)
+        # Note: need to make sure this is correct
+        degrees1 = [cur_deg + (self._max_angle * float(i) / float(self.DEGREE_DIVISOR))
+                    for i in range(1, self.DEGREE_DIVISOR + 1)]
+        degrees2 = [cur_deg - (self._max_angle * float(i) / float(self.DEGREE_DIVISOR))
+                    for i in range(1, self.DEGREE_DIVISOR + 1)]
+        possible_degrees = [cur_deg] + degrees1 + degrees2
+        orientations = []
+        for degree in possible_degrees:
+            pos = [self._stride_length * math.cos(math.radians(degree)),
+                   self._stride_length * math.sin(math.radians(degree))]
+            orien = self.__convert_world_pos_to_map_pos(pos)
+            for i in range(len(orien)):
+                orien[i] = int(orien[i])
+            orientations.append(orien)
+        return orientations
 
     # Note: the returned strides are in the maps (and not world) coordinates
     def _get_possible_strides(self, cur_pos, prev_pos=None):

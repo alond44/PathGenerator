@@ -178,7 +178,7 @@ if __name__ == "__main__":
                                                          path_number=50)
     print(f"Average error: {error_avg}\nAverage constraint: {distance_avg}")
     """
-    paths = pg.gen_paths(ConstraintType.TIME, 150, PathType.MAP_ROAM, path_num=5, to_print=True, weight=1.5)
+    paths = pg.gen_paths(ConstraintType.TIME, 300, PathType.AREA_EXPLORE, path_num=5, to_print=True, weight=1.5)
 
     # pg.print_path()
     # pg.gen_paths(ConstraintType.TIME, 50, PathType.MAP_ROAM, path_num=1, to_print=True, weight=1.5)
