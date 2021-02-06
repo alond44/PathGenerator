@@ -479,7 +479,7 @@ class PathGenerator:
 
     def _can_fly_over(self, pos):
         """This method checks if a position in the dsm map got height value larger then the drone's flight height"""
-        return self._dsm[int(pos[0])][int(pos[1])] <= self._flight_height
+        return self._dsm[int(pos[0])][int(pos[1])] > self._flight_height
 
     def _in_map_bound(self, pos):
         """
@@ -599,7 +599,7 @@ class PathGenerator:
     def __adjust_heights(self):
         for i in range(self._map_dim[0]):
             for j in range(self._map_dim[1]):
-                self._dsm[i][j] = abs(self._dsm[i][j] + self._org_vector[2])
+                self._dsm[i][j] = self._dsm[i][j] + self._org_vector[2]
 
     def __get_obstacle_from_point(self, binary_map, pos, depth):
         x = pos[0]
