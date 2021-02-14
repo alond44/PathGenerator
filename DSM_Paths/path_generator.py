@@ -12,7 +12,7 @@ from matplotlib.pyplot import figure
 from rtree import index  # new
 
 from DSM_Paths.DsmParser import DSMParcer
-from DSM_Paths.convex_polygon import ConvexPolygon
+from DSM_Paths.convex_polygon import ConvexPolygon, Point
 
 
 @unique
@@ -35,6 +35,8 @@ class PathGenerator:
     SAMPLE_RATE = 0.6  # The drone way point minimal distance coefficient is 0.6 * velocity.
     MAX_STRIDE_LEN = 6.0  # Allowing the largest stride length to be 6 meters.
     MIN_STRIDE_LEN = 2.0  # Allowing the smallest stride length to be 2 meters.
+    MAX_ANGLE = 60.0
+    MIN_ANGLE = 20.0
     DEGREE_DIVISOR = 2  # allowing 2 possible angles of right turn and 2 of left turn.
     RADIUS = 1.2  # We don't allow the drone to be within 1 meter of an obstacle.
     EPSILON = 0.001
@@ -69,12 +71,13 @@ class PathGenerator:
         self._flight_height = flight_height
         # self.__max_recursion_limit = sys.getrecursionlimit() - 10
         self._max_recursion_limit = 75  # TODO: fix magic number
-        self._max_angle = max_angle if 60.0 >= max_angle >= 20.0 else 45.0
+        self._max_angle = max_angle
         if stride_multiplier > 0:
             self._stride_length = self.SAMPLE_RATE * velocity * stride_multiplier
         else:
             self._stride_length = self.SAMPLE_RATE * velocity
         self._adjust_stride()
+        self._adjust_angle()
         if dsm is not None and origin is not None and map_dimensions is not None and pixel_dimensions is not None \
                 and len(origin) == 3 and len(map_dimensions) == 2 and len(pixel_dimensions) == 2:
             self._dsm = dsm
@@ -128,7 +131,7 @@ class PathGenerator:
             The kind of path generating algorithm used.
             Will hold either PathType.AREA_EXPLORE for probability random path and PathType.MAP_ROAM for A*
             generated path to random spots.
-        start_location : list
+        start_location : Point
             The path's first point. If None is passed or the given point is not valid a random one will
             be generated.
         path_num : int
@@ -173,7 +176,6 @@ class PathGenerator:
                 else:  # meaning path_type is PathType.MAP_ROAM
                     path = [self.__gen_path_weighted_a_star(start_location=start_location, max_cost=constraint,
                                                             cost_per_meter=cost_per_meter, weight=weight)]
-                # TODO: create a csv file with the path's data.
                 self.__create_path_csv_file(path=path, directory=result_folder_path, path_number=i+1)
                 paths += [path]
                 print(f"created path number {i + 1} out of {path_num}")
@@ -291,7 +293,10 @@ class PathGenerator:
             plt.figure(1)
             plt.imshow(self._dsm)
             if path is not None and len(path) >= 2:
-                points = np.array(path)
+                path_list = []
+                for point in path:
+                    path_list.append([point.x, point.y])
+                points = np.array(path_list)
                 plt.plot(points[:, 1], points[:, 0], plot_style)
                 # printing the path's start and end points with their descriptions on the map
                 start_patch = patches.Patch(color='cyan', label='Path\'s start')
@@ -300,9 +305,13 @@ class PathGenerator:
                 plt.plot(points[0][1], points[0][0], 'c.')
                 plt.plot(points[-1][1], points[-1][0], 'b.')
 
-            # Print obstacle for testing purposes.
-            # for obstacle in self._obstacle_list:
-            #     plt.plot(obstacle.sorted_points[:, 1], obstacle.sorted_points[:, 0], 'c-')
+            """# Print obstacle for testing purposes.
+            for obstacle in self._obstacle_list:
+                obstacle_point_list = []
+                for point in obstacle.sorted_points:
+                    obstacle_point_list.append([point.x, point.y])
+                points = np.array(obstacle_point_list)
+                plt.plot(points[:, 1], points[:, 0], 'c-')"""
 
             plt.show()
         else:
@@ -352,12 +361,12 @@ class PathGenerator:
         path_points = [(cur_pos, strides_copy)]
         path_cost = 0
         while True:
-            new_pos_option = [sum(x) for x in zip(step, cur_pos)]
+            # new_pos_option = [sum(x) for x in zip(step, cur_pos)]
+            new_pos_option = Point(cur_pos.x + step.x, cur_pos.y + step.y)
             if self.__is_stride_legal(new_pos_option, cur_pos) and random.randrange(0, 100) <= 80:
                 # the other options from this point are strides without the chosen stride.
                 strides_copy = strides.copy()
                 self._remove_closest_step(strides_copy, step)
-                # strides_copy.remove(step)
                 path_points += [(new_pos_option, strides_copy)]
                 path_cost += self.__euclidean_distance(new_pos_option, cur_pos) * cost_per_meter
 
@@ -371,26 +380,22 @@ class PathGenerator:
                 cur_pos = new_pos_option
             else:
                 self._remove_closest_step(strides, step)
-                # strides.remove(step)
                 if len(strides) != 0:
                     step = strides[random.randrange(len(strides))]
-                    # last_move = random.randrange(0, len(strides))
                 else:  # the current pos got no legal strides left
                     while len(path_points) > 1:
                         prev_pos, strides = path_points[-2]
                         del path_points[-1]
+                        # TODO: create a stride_cost variable equals stride_length * cost_per_meter
                         path_cost -= self.__euclidean_distance(prev_pos, cur_pos) * cost_per_meter
                         cur_pos = prev_pos
                         if len(strides) != 0:
                             break
-                    # last_move = random.randrange(len(strides))
-                    # step = strides[random.randrange(len(strides))]
                     if len(path_points) <= 1:  # path was emptied out and there are no legal moves
                         cur_pos = self._gen_random_point_under_constraints()
                         strides = self._get_possible_strides(cur_pos)  # randomizing the first possible strides again.
                         path_points = [(cur_pos, strides)]
                         path_cost = 0
-                        # last_move = random.randrange(len(strides))
                     step = strides[random.randrange(len(strides))]
 
     def __h(self, location, goal, weight):
@@ -421,9 +426,10 @@ class PathGenerator:
             directions = [[-1, 0], [1, 0], [0, -1], [0, 1]]
             for direction in directions:
                 neighbor = [sum(x) for x in zip(direction, list(current))]
-                if self._can_fly_over_in_bound(neighbor):
+                if self._can_fly_over_in_bound(Point(neighbor[0], neighbor[1])):
                     # TODO: make sure the change to tentative_g_score is correct.
-                    move_cost = cost_per_meter * self.__euclidean_distance(current, neighbor)
+                    move_cost = cost_per_meter * self.__euclidean_distance(Point(current[0], current[1]),
+                                                                           Point(neighbor[0], neighbor[1]))
                     tentative_g_score = g_score.get(current, float('inf')) + move_cost
                     if tentative_g_score < g_score.get(tuple(neighbor), float('inf')):
                         came_from[tuple(neighbor)] = current
@@ -466,40 +472,39 @@ class PathGenerator:
             for i in range(len(path) - 1):
                 cur_world_pos = next_world_pos
                 next_world_pos = self.__convert_map_pos_to_world_pos(path[i + 1])
-                theta = math.atan2(next_world_pos[1] - cur_world_pos[1], next_world_pos[0] - cur_world_pos[0])
-                x, y = cur_world_pos[0] + self._org_vector[0][0], cur_world_pos[1] + self._org_vector[1][0]
+                theta = math.atan2(next_world_pos.y - cur_world_pos.y, next_world_pos.x - cur_world_pos.x)
+                x, y = cur_world_pos.x + self._org_vector[0], cur_world_pos.y + self._org_vector[1]
                 vx, vy = self._velocity * math.cos(theta), self._velocity * math.sin(theta)
                 writer.writerow([x, y, z, vx, vy, 0])
             final_pos = self.__convert_map_pos_to_world_pos(path[-1])
-            writer.writerow([final_pos[0], final_pos[1], z, 0, 0, 0])
+            writer.writerow([final_pos.x, final_pos.y, z, 0, 0, 0])
 
     """
     Constraint checks
     """
 
-    def _can_fly_over(self, pos):
+    def _can_fly_over(self, point: Point):
+        # TODO: figure out the interpolation logic and reverse it here.
         """This method checks if a position in the dsm map got height value larger then the drone's flight height"""
-        return self._dsm[int(pos[0])][int(pos[1])] > self._flight_height
+        return self._dsm[int(point.x)][int(point.y)] > self._flight_height
 
-    def _in_map_bound(self, pos):
+    def _in_map_bound(self, point: Point):
         """
         This method returns true if the position is in the maps main area (without the leading zero height areas
         on the sides of the map).
         """
-        in_x_bound = self._x_upper_bound >= int(pos[0]) >= self._x_lower_bound
-        in_y_bound = self._y_upper_bound >= int(pos[1]) >= self._y_lower_bound
+        in_x_bound = self._x_upper_bound >= int(point.x) >= self._x_lower_bound
+        in_y_bound = self._y_upper_bound >= int(point.y) >= self._y_lower_bound
         return in_x_bound and in_y_bound
 
-    def _can_fly_over_in_bound(self, pos):
-        return self._in_map_bound(pos) and self._can_fly_over(pos)
+    def _can_fly_over_in_bound(self, point: Point):
+        return self._in_map_bound(point) and self._can_fly_over(point)
 
-    def _is_obstacle(self, pos):
-        return self._in_map_bound(pos) and not self._can_fly_over(pos)
+    def _is_obstacle(self, point: Point):
+        return self._in_map_bound(point) and not self._can_fly_over(point)
 
-    def _too_close_to_obstacle(self, polygon: ConvexPolygon, cur_pos: list, prev_pos: list, min_x, max_x, min_y, max_y):
-        # we'll use these x & y variables for convenience purpose
-        x = 0
-        y = 1
+    def _too_close_to_obstacle(self, polygon: ConvexPolygon, cur_pos: Point, prev_pos: Point,
+                               min_x, max_x, min_y, max_y):
         cur_world_pos = self.__convert_map_pos_to_world_pos(cur_pos)
         prev_world_pos = self.__convert_map_pos_to_world_pos(prev_pos)
         d2 = self.__euclidean_distance(polygon.sorted_points[-1], cur_pos)
@@ -513,34 +518,36 @@ class PathGenerator:
                 return True
             poly1 = self.__convert_map_pos_to_world_pos(polygon.sorted_points[i])
             poly2 = self.__convert_map_pos_to_world_pos(polygon.sorted_points[i + 1])
-            if abs(poly1[x] - poly2[x]) < self.EPSILON and abs(cur_world_pos[x] - poly1[x]) <= self.RADIUS and \
-                    min_y <= cur_world_pos[y] <= max_y:
+            if abs(poly1.x - poly2.x) < self.EPSILON and abs(cur_world_pos.x - poly1.x) <= self.RADIUS and \
+                    min_y <= cur_world_pos.y <= max_y:
                 return True
-            if abs(poly1[y] - poly2[y]) < self.EPSILON and abs(cur_world_pos[y] - poly1[y]) <= self.RADIUS and \
-                    min_x <= cur_world_pos[x] <= max_x:
+            if abs(poly1.y - poly2.y) < self.EPSILON and abs(cur_world_pos.y - poly1.y) <= self.RADIUS and \
+                    min_x <= cur_world_pos.x <= max_x:
                 return True
             if self._point_within_radius_from_line(cur_world_pos, poly1, poly2) or \
                     self._point_within_radius_from_line(poly2, cur_world_pos, prev_world_pos):
                 return True
         return False
 
-    def _point_within_radius_from_line(self, point: list, line_p1: list, line_p2: list):
+    # TODO: fix this method.
+    def _point_within_radius_from_line(self, point: Point, line_p1: Point, line_p2: Point):
         # distance from point to line calculation. The line between line_p1 and line_p2 is y = mx + b.
-        m = (line_p1[1] - line_p2[1]) / (line_p1[0] - line_p2[0])
-        b = line_p1[1] - m * line_p1[0]
-        distance = abs(m * point[0] - point[1] + b) / math.sqrt((m * m) + 1)
-        return distance < self.RADIUS and min(line_p1[0], line_p2[0]) <= point[0] <= max(line_p1[0], line_p2[0])
+        m = (line_p1.y - line_p2.y) / (line_p1.x - line_p2.x)
+        b = line_p1.y - m * line_p1.x
+        distance = abs(m * point.x - point.y + b) / math.sqrt((m * m) + 1)
+        return distance < self.RADIUS and min(line_p1.x, line_p2.x) <= point.x <= max(line_p1.x, line_p2.x)
 
-    def __is_stride_legal(self, cur_pos: list, prev_pos: list):
-        if not (self._can_fly_over_in_bound(cur_pos) and self._can_fly_over_in_bound(prev_pos)):
+    def __is_stride_legal(self, cur_point: Point, prev_point: Point):
+        if not (self._can_fly_over_in_bound(cur_point) and self._can_fly_over_in_bound(prev_point)):
             return False
-        min_x, max_x = min(cur_pos[0], prev_pos[0]), max(cur_pos[0], prev_pos[0])
-        min_y, max_y = min(cur_pos[1], prev_pos[1]), max(cur_pos[1], prev_pos[1])
+        min_x, max_x = min(cur_point.x, prev_point.x), max(cur_point.x, prev_point.x)
+        min_y, max_y = min(cur_point.y, prev_point.y), max(cur_point.y, prev_point.y)
         obstacle_indices = self._obstacle_index.intersection((min_x - self.RADIUS, min_y - self.RADIUS,
                                                               max_x + self.RADIUS, max_y + self.RADIUS))
         for idx in obstacle_indices:
-            if self._too_close_to_obstacle(self._obstacle_list[idx], cur_pos, prev_pos, min_x, max_x, min_y, max_y) or \
-                    self._obstacle_list[idx].line_intersect(cur_pos, prev_pos):
+            if self._obstacle_list[idx].line_intersect(cur_point, prev_point) or \
+                    self._too_close_to_obstacle(self._obstacle_list[idx], cur_point, prev_point,
+                                                min_x, max_x, min_y, max_y):
                 return False
         return True
 
@@ -605,7 +612,7 @@ class PathGenerator:
         x = pos[0]
         y = pos[1]
         # Important note: is_obstacle checks if a point is in map bound.
-        if self._is_obstacle(pos) and binary_map[x][y] == 0:
+        if self._is_obstacle(Point(x, y)) and binary_map[x][y] == 0:
             binary_map[x][y] = 1
             # Note: was- {(x, y), (x + 1, y), (x, y + 1), (x + 1, y + 1)} to fit the
             # obstacles presented on the map when printing. However the dsm numpy array values are these:
@@ -620,11 +627,11 @@ class PathGenerator:
 
     def __get_obstacle_polygon_list(self):
         # binary_obstacle_map = [[0] * self._map_dim[0]] * self._map_dim[1]
-        binary_obstacle_map = [[0 for j in range(self._map_dim[1])] for i in range(self._map_dim[0])]
+        binary_obstacle_map = [[0 for _ in range(self._map_dim[1])] for _ in range(self._map_dim[0])]
         obstacle_list = []
         for x in range(self._map_dim[0]):
             for y in range(self._map_dim[1]):
-                if self._is_obstacle((x, y)) and binary_obstacle_map[x][y] == 0:
+                if self._is_obstacle(Point(x, y)) and binary_obstacle_map[x][y] == 0:
                     obstacle_polygon = ConvexPolygon(self.__get_obstacle_from_point(binary_obstacle_map, (x, y), 1))
                     obstacle_list.append(obstacle_polygon)
         return obstacle_list
@@ -642,19 +649,19 @@ class PathGenerator:
     Helping methods. 
     """
 
-    def __convert_map_pos_to_world_pos(self, pos):
-        return [self._pixel_dim[0] * pos[0], self._pixel_dim[1] * pos[1]]
+    def __convert_map_pos_to_world_pos(self, point: Point):
+        return Point(self._pixel_dim[0] * point.x, self._pixel_dim[1] * point.y)
 
-    def __convert_world_pos_to_map_pos(self, pos):
-        return [pos[0] / self._pixel_dim[0], pos[1] / self._pixel_dim[1]]
+    def __convert_world_pos_to_map_pos(self, point: Point):
+        return Point(point.x / self._pixel_dim[0], point.y / self._pixel_dim[1])
 
-    def __euclidean_distance(self, p1, p2):
+    def __euclidean_distance(self, p1: Point, p2: Point):
         """
-        This method gets two points on the dsm grid and return the euclidean distance between them using the pixels
-        dimension.
+        This method gets two points on the dsm grid and return the real world euclidean distance between them using
+        the pixels dimension.
         """
-        x_squared_dist = (self._pixel_dim[0] * abs(p1[0] - p2[0])) ** 2
-        y_squared_dist = (self._pixel_dim[1] * abs(p1[1] - p2[1])) ** 2
+        x_squared_dist = (self._pixel_dim[0] * abs(p1.x - p2.x)) ** 2
+        y_squared_dist = (self._pixel_dim[1] * abs(p1.y - p2.y)) ** 2
         return math.sqrt(x_squared_dist + y_squared_dist)
 
     def _gen_random_point_under_constraints(self):
@@ -662,11 +669,11 @@ class PathGenerator:
         This method return a random point in the map's main area (bounded in _bound_map_main_area)
         whose height value is shorter then the flight's height.
         """
-        while True:
+        while True:  # TODO: randomize using a uniform distribution?
             rand_x = random.randrange(self._x_lower_bound, self._x_upper_bound)
             rand_y = random.randrange(self._y_lower_bound, self._y_upper_bound)
-            if self._can_fly_over((rand_x, rand_y)):
-                return [rand_x, rand_y]
+            if self._can_fly_over(Point(rand_x, rand_y)):  # TODO: make sure the point is not inside a polygon
+                return Point(rand_x, rand_y)
 
     def _adjust_stride(self):
         """Makes sure the stride length does not deviate from the maximum and minimum stride length values."""
@@ -675,7 +682,13 @@ class PathGenerator:
         if self._stride_length < self.MIN_STRIDE_LEN:
             self._stride_length = self.MIN_STRIDE_LEN
 
-    # Note: the returned strides are in the maps (and not world) coordinates
+    def _adjust_angle(self):
+        """Makes sure the maximal turn angle does not deviate from the maximum and minimum angle values."""
+        if self._max_angle > self.MAX_ANGLE:
+            self._max_angle = self.MAX_ANGLE
+        if self._max_angle < self.MIN_ANGLE:
+            self._max_angle = self.MIN_ANGLE
+
     def _get_possible_strides(self, cur_pos, prev_pos=None):
         """
             receives the current position and a previous position (so we can calculate orientation)
@@ -683,15 +696,15 @@ class PathGenerator:
             that is at most max_angle degrees.
             Note:   - the number of stride options depends on the DEGREE_DIVISOR variable.
                     - if prev_pos is None the orientation is randomized
+                    - the returned strides are in the maps (and not world) coordinates
         """
         if prev_pos is None:
             cur_deg = random.uniform(0, 360)
         else:
             world_cur_pos = self.__convert_map_pos_to_world_pos(cur_pos)
             world_prev_pos = self.__convert_map_pos_to_world_pos(prev_pos)
-            cur_orientation = [world_cur_pos[0] - world_prev_pos[0], world_cur_pos[1] - world_prev_pos[1]]
-            cur_deg = ((math.degrees(math.atan2(cur_orientation[1], cur_orientation[0])) + 360) % 360)
-        # Note: need to make sure this is correct
+            cur_orientation = Point(world_cur_pos.x - world_prev_pos.x, world_cur_pos.y - world_prev_pos.y)
+            cur_deg = ((math.degrees(math.atan2(cur_orientation.y, cur_orientation.x)) + 360) % 360)
         degrees1 = [cur_deg + (self._max_angle * float(i) / float(self.DEGREE_DIVISOR))
                     for i in range(1, self.DEGREE_DIVISOR + 1)]
         degrees2 = [cur_deg - (self._max_angle * float(i) / float(self.DEGREE_DIVISOR))
@@ -699,21 +712,21 @@ class PathGenerator:
         possible_degrees = [cur_deg] + degrees1 + degrees2
         orientations = []
         for degree in possible_degrees:
-            pos = [self._stride_length * math.cos(math.radians(degree)),
-                   self._stride_length * math.sin(math.radians(degree))]
-            orientations.append(self.__convert_world_pos_to_map_pos(pos))
+            point = Point(self._stride_length * math.cos(math.radians(degree)),
+                          self._stride_length * math.sin(math.radians(degree)))
+            orientations.append(self.__convert_world_pos_to_map_pos(point))
         return orientations
 
-    def _get_neighbors(self, cur_pos, prev_pos=None):
+    """def _get_neighbors(self, cur_pos, prev_pos=None):  # TODO: delete if not in use.
         strides = self._get_possible_strides(cur_pos, prev_pos)
         for stride in strides:
             next_x = cur_pos[0] + stride[0]
             next_y = cur_pos[1] + stride[1]
-            yield self.__convert_world_pos_to_map_pos([next_x, next_y])
+            yield self.__convert_world_pos_to_map_pos([next_x, next_y])"""
 
-    def _remove_closest_step(self, strides, step):
+    def _remove_closest_step(self, strides: list, step: Point):
         for i in range(len(strides)):
-            if abs(strides[i][0] - step[0]) <= self.EPSILON and abs(strides[i][1] - step[1]) <= self.EPSILON:
+            if abs(strides[i].x - step.x) <= self.EPSILON and abs(strides[i].y - step.y) <= self.EPSILON:
                 del strides[i]
                 return
 
