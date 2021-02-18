@@ -4,6 +4,7 @@ import time
 import csv
 import random
 from pathlib import Path
+from rtree import index
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -204,6 +205,17 @@ def csv_test():
 
 
 if __name__ == "__main__":
-    csv_test()
-    for i in range(10):
-        print(random.uniform(0, 360))
+    np_points = np.array([[0, 0], [6, 0], [3, 4]])
+    # calculating the convex hull.
+    hull = ConvexHull(np_points)
+    rtree = index.Index()
+    rtree.insert(1, (0, 0, 6, 4))
+    intersections = rtree.count((2, 0, 4, 1))
+    print("first:")
+    print(intersections)
+    intersections = rtree.count((3, 0, 3, 0))
+    print("second:")
+    print(intersections)
+    intersections = rtree.count((20, 10, 20, 10))
+    print("third:")
+    print(intersections)

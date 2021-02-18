@@ -22,7 +22,11 @@ class ConvexPolygon:
             self.min_y, self.max_y = min(self.min_y, p.y), max(self.max_y, p.y)
             self.sorted_points.append(p)
 
+    # TODO: document this method in our report.
     def line_intersect(self, p1: Point, p2: Point):
+        """
+            This method return True iff a line formed by the given two points intersects with the convex polygon.
+        """
         sign = -1 if self._calc_signed_area(p1, p2, self.sorted_points[0]) < 0 else 1
         for i in range(1, len(self.sorted_points)):
             p3 = self.sorted_points[i]
