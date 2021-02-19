@@ -167,7 +167,7 @@ if __name__ == "__main__":
     FileName = 'dsm_binary'
     _, _, _, x_org, y_org, z_org, Wx, Wy, dWx, dWy, dsm_ = DSMParcer(Inputpath, FileName, False)
 
-    pg = PathGenerator(velocity=7, flight_height=-50, dsm=dsm_, origin=(x_org, y_org, z_org),
+    pg = PathGenerator(velocity=7.0, flight_height=-50.0, dsm=dsm_, origin=(x_org, y_org, z_org),
                        map_dimensions=(Wx, Wy), pixel_dimensions=(dWx, dWy), max_angle=25.0)
 
     """

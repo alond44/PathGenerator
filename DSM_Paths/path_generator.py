@@ -14,7 +14,8 @@ from rtree import index  # new
 from DSM_Paths.DsmParser import DSMParcer
 from DSM_Paths.convex_polygon import ConvexPolygon, Point
 
-# a flag for printing the obstacles polygons when printing the map
+# a flag for printing the obstacles polygons when printing the map.
+# if set to True, print_path method will also print the obstacle polygons.
 DEBUG_OBSTACLE = False
 
 
@@ -232,9 +233,9 @@ class PathGenerator:
 
          Notes
         ---------
-        Decreasing resolution might cause information loss as we use max value substitution.
-        Decreasing resolution using a multiplier value that the map's sides are not divisible by will cause
-        representation of parts of the world map that are not included in the given dsm.
+        -   Decreasing resolution might cause information loss as we use max value substitution.
+        -   Decreasing resolution using a multiplier value that the map's sides are not divisible by will cause
+            representation of parts of the world map that are not included in the given dsm.
         """
         if self._dsm is not None:
             prev_dim = list(self._map_dim)
@@ -330,7 +331,7 @@ class PathGenerator:
 
     def calc_path_distance(self, path: list):
         """
-        This method gets a path and returns the path's distance on the instance's map.
+            This method gets a path and returns the path's distance on the instance's map.
         """
         if path is not None:
             distance = 0
@@ -341,7 +342,7 @@ class PathGenerator:
 
     def calc_path_travel_time(self, path: list):
         """
-        This method gets a path and returns the path's travel duration on the instance's map.
+            This method gets a path and returns the path's travel duration on the instance's map.
         """
         if path is not None:
             travel_time = 0
@@ -352,8 +353,8 @@ class PathGenerator:
 
     def __gen_path_probability(self, start_location: list, max_cost: float, cost_per_meter: float):
         """
-        This method calculate a path with cost = cost max_cost where a move's cost is calculated as the distance
-        between the two neighbors multiplied by cost_per_meter.
+            This method calculate a path with cost = cost max_cost where a move's cost is calculated as the distance
+            between the two neighbors multiplied by cost_per_meter.
         """
         cur_pos = start_location
         strides = self._get_possible_strides(cur_pos)  # randomizing the first possible strides
@@ -406,8 +407,8 @@ class PathGenerator:
 
     def __weighted_a_star(self, start_location, end_location, cost_per_meter, weight):
         """
-        This method calculates weighted A* algorithm between start_location and end_location.
-        The weight (epsilon) for weighted A* is the parameter weight.
+            This method calculates weighted A* algorithm between start_location and end_location.
+            The weight (epsilon) for weighted A* is the parameter weight.
         """
         open_set = {tuple(start_location)}
         came_from = {}
@@ -489,8 +490,8 @@ class PathGenerator:
 
     def _in_map_bound(self, point: Point):
         """
-        This method returns true if the position is in the maps main area (without the leading zero height areas
-        on the sides of the map).
+            This method returns true if the position is in the maps main area (without the leading zero height areas
+            on the sides of the map).
         """
         in_x_bound = self._x_upper_bound >= int(point.x) >= self._x_lower_bound
         in_y_bound = self._y_upper_bound >= int(point.y) >= self._y_lower_bound
@@ -540,10 +541,9 @@ class PathGenerator:
     def __is_stride_legal(self, next_point: Point, cur_point: Point):
         if not (self._can_fly_over_in_bound(next_point) and self._can_fly_over_in_bound(cur_point)):
             return False
-        min_x, max_x = min(next_point.x, cur_point.x), max(next_point.x, cur_point.x)
-        min_y, max_y = min(next_point.y, cur_point.y), max(next_point.y, cur_point.y)
-        obstacle_indices = self._obstacle_index.intersection((min_x - self.RADIUS, min_y - self.RADIUS,
-                                                              max_x + self.RADIUS, max_y + self.RADIUS))
+        min_x, max_x = min(next_point.x, cur_point.x) - self.RADIUS, max(next_point.x, cur_point.x) + self.RADIUS
+        min_y, max_y = min(next_point.y, cur_point.y) - self.RADIUS, max(next_point.y, cur_point.y) + self.RADIUS
+        obstacle_indices = self._obstacle_index.intersection((min_x, min_y, max_x, max_y))
         for idx in obstacle_indices:
             if self._obstacle_list[idx].line_intersect(next_point, cur_point) or \
                     self._too_close_to_obstacle(self._obstacle_list[idx], next_point, cur_point):
@@ -680,9 +680,9 @@ class PathGenerator:
             This method return a random point in the map's main area (bounded in _bound_map_main_area)
             whose height value is shorter then the flight's height.
         """
-        while True:  # TODO: randomize using a uniform distribution?
-            rand_x = random.randrange(self._x_lower_bound, self._x_upper_bound)
-            rand_y = random.randrange(self._y_lower_bound, self._y_upper_bound)
+        while True:
+            rand_x = np.random.uniform(self._x_lower_bound, self._x_upper_bound)
+            rand_y = np.random.uniform(self._y_lower_bound, self._y_upper_bound)
             # checking that the randomized point does not intersect with non of the obstacle polygons.
             if self._obstacle_index.count((rand_x - self.RADIUS, rand_y - self.RADIUS,
                                            rand_x + self.RADIUS, rand_y + self.RADIUS)) == 0:

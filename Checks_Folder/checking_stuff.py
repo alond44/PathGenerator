@@ -2,7 +2,6 @@ import math
 import os
 import time
 import csv
-import random
 from pathlib import Path
 from rtree import index
 
@@ -204,10 +203,7 @@ def csv_test():
             writer.writerow([i, i*2, i*3])
 
 
-if __name__ == "__main__":
-    np_points = np.array([[0, 0], [6, 0], [3, 4]])
-    # calculating the convex hull.
-    hull = ConvexHull(np_points)
+def rtree_intersection_test():
     rtree = index.Index()
     rtree.insert(1, (0, 0, 6, 4))
     intersections = rtree.count((2, 0, 4, 1))
@@ -219,3 +215,7 @@ if __name__ == "__main__":
     intersections = rtree.count((20, 10, 20, 10))
     print("third:")
     print(intersections)
+
+
+if __name__ == "__main__":
+    rtree_intersection_test()
