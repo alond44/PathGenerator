@@ -328,15 +328,6 @@ class PathGenerator:
         else:
             print('Need to initiate map using init_map before we start.')
 
-    # TODO: delete after testing
-    def print_map_sizes(self):
-        print(f"stride_length: {self._stride_length}")
-        print(f"map dimensions: {self._map_dim}")
-        print(f"pixel dimensions: {self._pixel_dim}")
-        print("map boundaries:")
-        print(f"    {self._x_lower_bound} <= x <= {self._x_upper_bound}")
-        print(f"    {self._y_lower_bound} <= y <= {self._y_upper_bound}")
-
     def calc_path_distance(self, path: list):
         """
         This method gets a path and returns the path's distance on the instance's map.
@@ -453,8 +444,8 @@ class PathGenerator:
     def __gen_path_weighted_a_star(self, start_location: list, max_cost: float, cost_per_meter: float,
                                    weight: float = 1.0):
         """
-        This method creates a path from the given starting location to a randomized end
-        location with the cost of max_cost.
+            This method creates a path from the given starting location to a randomized end
+            location with the cost of max_cost.
         """
         path = [start_location]
         cur_start = start_location
@@ -481,7 +472,7 @@ class PathGenerator:
                 cur_world_pos = next_world_pos
                 next_world_pos = self.__convert_map_point_to_world_point(path[i + 1])
                 theta = math.atan2(next_world_pos.y - cur_world_pos.y, next_world_pos.x - cur_world_pos.x)
-                x, y = cur_world_pos.x + self._org_vector[0], cur_world_pos.y + self._org_vector[1]
+                x, y = cur_world_pos.x + self._org_vector[0][0], cur_world_pos.y + self._org_vector[1][0]
                 vx, vy = self._velocity * math.cos(theta), self._velocity * math.sin(theta)
                 writer.writerow([x, y, z, vx, vy, 0])
             final_pos = self.__convert_map_point_to_world_point(path[-1])
@@ -525,19 +516,20 @@ class PathGenerator:
                 return True
             poly1 = self.__convert_map_point_to_world_point(polygon.sorted_points[i])
             poly2 = self.__convert_map_point_to_world_point(polygon.sorted_points[i + 1])
-            if abs(poly1.x - poly2.x) < self.EPSILON and abs(next_world_point.x - poly1.x) <= self.RADIUS and \
-                    min(poly1.y, poly2.y) <= next_world_point.y <= max(poly1.y, poly2.y):
-                return True
-            elif abs(poly1.y - poly2.y) < self.EPSILON and abs(next_world_point.y - poly1.y) <= self.RADIUS and \
-                    max(poly1.x, poly2.x) <= next_world_point.x <= max(poly1.x, poly2.x):
-                return True
+            if abs(poly1.x - poly2.x) < self.EPSILON:
+                if abs(next_world_point.x - poly1.x) <= self.RADIUS and \
+                        min(poly1.y, poly2.y) <= next_world_point.y <= max(poly1.y, poly2.y):
+                    return True
+            elif abs(poly1.y - poly2.y) < self.EPSILON:
+                if abs(next_world_point.y - poly1.y) <= self.RADIUS and \
+                        max(poly1.x, poly2.x) <= next_world_point.x <= max(poly1.x, poly2.x):
+                    return True
             elif self._point_within_radius_from_line(next_world_point, poly1, poly2):
                 return True
             if self._point_within_radius_from_line(poly2, next_world_point, cur_world_point):
                 return True
         return False
 
-    # TODO: fix this method (get rid of the runtime warning).
     def _point_within_radius_from_line(self, point: Point, line_p1: Point, line_p2: Point):
         # distance from point to line calculation. The line between line_p1 and line_p2 is y = mx + b.
         m = (line_p1.y - line_p2.y) / (line_p1.x - line_p2.x)
@@ -644,6 +636,10 @@ class PathGenerator:
         return obstacle_list
 
     def __initiate_obstacle_index(self):
+        """
+            This method passes over the obstacle list and insert each obstacle (represented by its index in the
+            obstacle list) to the rtree.
+        """
         for i in range(len(self._obstacle_list)):
             obstacle = self._obstacle_list[i]
             self._obstacle_index.insert(i, (obstacle.min_x, obstacle.min_y, obstacle.max_x, obstacle.max_y))
@@ -688,7 +684,8 @@ class PathGenerator:
             rand_x = random.randrange(self._x_lower_bound, self._x_upper_bound)
             rand_y = random.randrange(self._y_lower_bound, self._y_upper_bound)
             # checking that the randomized point does not intersect with non of the obstacle polygons.
-            if self._obstacle_index.count((rand_x, rand_y, rand_x, rand_y)) == 0:
+            if self._obstacle_index.count((rand_x - self.RADIUS, rand_y - self.RADIUS,
+                                           rand_x + self.RADIUS, rand_y + self.RADIUS)) == 0:
                 return Point(rand_x, rand_y)
 
     def _adjust_stride(self):
