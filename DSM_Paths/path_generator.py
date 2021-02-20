@@ -1,6 +1,7 @@
 import math
 import os  # new
 import random
+import sys
 import csv  # new
 from enum import Enum, unique, auto
 from pathlib import Path  # new
@@ -12,7 +13,7 @@ from matplotlib.pyplot import figure
 from rtree import index  # new
 
 from DSM_Paths.DsmParser import DSMParcer
-from DSM_Paths.convex_polygon import ConvexPolygon, Point
+from DSM_Paths.geometry import ConvexPolygon, Point
 
 # a flag for printing the obstacles polygons when printing the map.
 # if set to True, print_path method will also print the obstacle polygons.
@@ -44,6 +45,11 @@ class PathGenerator:
     DEGREE_DIVISOR = 2      # Allowing DEGREE_DIVISOR possible angles of right turn and DEGREE_DIVISOR of left turn.
     RADIUS = 1.2            # We don't allow the drone to be within RADIUS meter of an obstacle.
     EPSILON = 0.001
+    # Important: read the doc if you decide to change these constants.
+    # These are used to better our obstacle creation process.
+    MIN_RECURSION_DEPT = 50                     # We don't allow the recursive method for obstacle tracing to have
+                                                # a maximal dept lower then 50.
+    RECURSION_TO_MAP_SIZE_RATIO = 75.0/770.0    # Used to set a depth maximum for the obstacle finding function.
 
     def __init__(self, velocity, flight_height, dsm=None, origin=(0.0, 0.0, 0.0), map_dimensions=(0, 0),
                  pixel_dimensions=(0.0, 0.0), stride_multiplier=1.0, max_angle=45.0):
@@ -73,8 +79,7 @@ class PathGenerator:
         """
         self._velocity = velocity
         self._flight_height = flight_height
-        # self.__max_recursion_limit = sys.getrecursionlimit() - 10
-        self._max_recursion_limit = 75  # TODO: fix magic number
+        self.__max_recursion_limit = sys.getrecursionlimit() - 10
         self._max_angle = max_angle
         if stride_multiplier > 0:
             self._stride_length = self.SAMPLE_RATE * velocity * stride_multiplier
@@ -86,9 +91,12 @@ class PathGenerator:
                 and len(origin) == 3 and len(map_dimensions) == 2 and len(pixel_dimensions) == 2:
             self._dsm = dsm
             self._org_vector = list(origin)
+            self._max_recursion_limit = int(self.RECURSION_TO_MAP_SIZE_RATIO *
+                                            max(map_dimensions[0], map_dimensions[1]))
             self._map_dim = list(map_dimensions)
             self._pixel_dim = list(pixel_dimensions)
             self.__adjust_heights()
+            self.__adjust_recursion_depth()
             # Updating the map boundary values.
             self._x_lower_bound, self._y_lower_bound, self._x_upper_bound, self._y_upper_bound = \
                 self.__bound_map_main_area()
@@ -112,7 +120,9 @@ class PathGenerator:
             self._org_vector = [x_org, y_org, z_org]
             self._map_dim = [wx, wy]
             self._pixel_dim = [dwx, dwy]
+            self._max_recursion_limit = int(self.RECURSION_TO_MAP_SIZE_RATIO * max(wx, wy))
             self.__adjust_heights()
+            self.__adjust_recursion_depth()
             # Updating the map boundary values.
             self._x_lower_bound, self._y_lower_bound, self._x_upper_bound, self._y_upper_bound = \
                 self.__bound_map_main_area()
@@ -690,17 +700,19 @@ class PathGenerator:
 
     def _adjust_stride(self):
         """Makes sure the stride length does not deviate from the maximum and minimum stride length values."""
-        if self._stride_length > self.MAX_STRIDE_LEN:
-            self._stride_length = self.MAX_STRIDE_LEN
-        if self._stride_length < self.MIN_STRIDE_LEN:
-            self._stride_length = self.MIN_STRIDE_LEN
+        self._stride_length = self.__adjustment(self._stride_length, self.MAX_STRIDE_LEN, self.MIN_STRIDE_LEN)
 
     def _adjust_angle(self):
         """Makes sure the maximal turn angle does not deviate from the maximum and minimum angle values."""
-        if self._max_angle > self.MAX_ANGLE:
-            self._max_angle = self.MAX_ANGLE
-        if self._max_angle < self.MIN_ANGLE:
-            self._max_angle = self.MIN_ANGLE
+        self._max_angle = self.__adjustment(self._max_angle, self.MAX_ANGLE, self.MIN_ANGLE)
+
+    def __adjust_recursion_depth(self):
+        """
+        Makes sure the recursion depth does not deviate from the system's maximal value and the
+        minimal value we defined.
+        """
+        self.__max_recursion_limit = int(self.__adjustment(float(self._max_recursion_limit),
+                                                           sys.getrecursionlimit() - 10, self.MIN_RECURSION_DEPT))
 
     def _get_possible_strides(self, cur_pos, prev_pos=None):
         """
@@ -746,3 +758,11 @@ class PathGenerator:
     @staticmethod
     def __is_zero(val):
         return -2 <= int(val) <= 2
+
+    @staticmethod
+    def __adjustment(value: float, max_value: float, min_value: float):
+        if value > max_value:
+            return max_value
+        if value < min_value:
+            return min_value
+        return value

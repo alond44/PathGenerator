@@ -1,34 +1,47 @@
-import math
-from functools import reduce
-
-EPSILON = math.pow(10, 7)
-TURN_LEFT, TURN_RIGHT, TURN_NONE = (1, -1, 0)
+# TODO: add scipy to the requirements
+from scipy.spatial.qhull import ConvexHull
+import numpy as np
 
 
-def convex_hull_graham(points):
-    """
-    Returns points on convex hull in CCW order according to Graham's scan algorithm.
-    By Tom Switzer <thomas.switzer@gmail.com>.
-    """
+class Point:
+    def __init__(self, x: float, y: float):
+        self.x = x
+        self.y = y
 
-    def cmp(a, b):
-        return (a > b) - (a < b)
+    def __str__(self):
+        return f"({self.x}, {self.y})"
 
-    def turn(p, q, r):
-        return cmp((q[0] - p[0])*(r[1] - p[1]) - (r[0] - p[0])*(q[1] - p[1]), 0)
-
-    def _keep_left(hull, r):
-        while len(hull) > 1 and turn(hull[-2], hull[-1], r) != TURN_LEFT:
-            hull.pop()
-        if not len(hull) or hull[-1] != r:
-            hull.append(r)
-        return hull
-
-    points = sorted(points)
-    l = reduce(_keep_left, points, [])
-    u = reduce(_keep_left, reversed(points), [])
-    return l.extend(u[i] for i in range(1, len(u) - 1)) or l
+    def __repr__(self):
+        return self.__str__()
 
 
-def calc_convex_hull(points: set):
-    points = convex_hull_graham(list(points))
+class ConvexPolygon:
+
+    def __init__(self, points: set):
+        np_points = np.array(list(points))
+        hull = ConvexHull(np_points)
+        self.sorted_points = []
+        self.min_x, self.max_x, self.min_y, self.max_y = np.inf, -np.inf, np.inf, -np.inf
+        for point in np_points[hull.vertices, :]:
+            p = Point(point[0], point[1])
+            self.min_x, self.max_x = min(self.min_x, p.x), max(self.max_x, p.x)
+            self.min_y, self.max_y = min(self.min_y, p.y), max(self.max_y, p.y)
+            self.sorted_points.append(p)
+
+    # TODO: document this method in our report.
+    def line_intersect(self, p1: Point, p2: Point):
+        """
+            This method return True iff a line formed by the given two points intersects with the convex polygon.
+        """
+        sign = -1 if self._calc_signed_area(p1, p2, self.sorted_points[0]) < 0 else 1
+        for i in range(1, len(self.sorted_points)):
+            p3 = self.sorted_points[i]
+            if self._calc_signed_area(p1, p2, p3) * sign < 0:
+                return True
+        return False
+
+    @staticmethod
+    def _calc_signed_area(p1: Point, p2: Point, p3: Point):
+        return 0.5 * ((p2.x - p3.x) * (p3.y - p1.y) + (p2.y - p3.y) * (p1.x - p3.x))
+
+
