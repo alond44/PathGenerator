@@ -269,11 +269,14 @@ class PathGenerator:
 
     def print_dots_set(self, open_set):
         figure(num=None, figsize=(8, 6))
+        plt.ion()
         plt.figure(1)
+        plt.hold(True)
         plt.imshow(self._dsm)
         points = np.array(list(open_set))
         plt.plot(points[:, 1], points[:, 0], 'bo')
-        plt.show()
+        plt.hold(False)
+
 
     def print_path(self, path=None, path_color='r', path_style='--'):
         """
@@ -401,15 +404,42 @@ class PathGenerator:
                         # last_move = random.randrange(len(strides))
                     step = strides[random.randrange(len(strides))]
 
+    def __generate_h(self, target):
+        Q = []
+        dist = {}
+        Q.append(target)
+        dist[tuple(target)] = 0
+        for i in self._obstacle_list:
+            nodes = [[i.min_x, i.min_y], [i.min_x, i.max_y], [i.max_x, i.min_y], [i.max_x, i.max_y]]
+            Q += nodes
+            for n in nodes:
+                dist[tuple(n)] = float('inf')
+
+        while len(Q) != 0:
+            current = list(min(Q, key=lambda x: dist[tuple(x)]))
+            Q.remove(current)
+            for node in dist.keys():
+                if self.__is_stride_legal(list(node), current):
+                    alt = dist[tuple(current)] + self.__euclidean_distance(current, list(node))
+                    dist[node] = min(dist[node], alt)
+        return
+
+    def __new_h(self, location, weight):
+        return self.heuristic[location[0]][location[1]] * weight
+
     def __h(self, location, goal, weight):
         """The heuristic function we used - euclidean distance."""
         return self.__euclidean_distance(goal, location) * weight
 
-    def __check_if_already_inside(self, neighbor, openset):
+    def __remove_already_inside(self, neighbor, openset):
+        world_nei = self.__convert_map_pos_to_world_pos(neighbor)
+        to_remove = []
         for i in openset:
-            if int(neighbor[0]) == int(i[0]) and int(neighbor[1]) == int(i[1]):
-                return True
-        return False
+            world_i = self.__convert_map_pos_to_world_pos(i[:2])
+            if self.__euclidean_distance(world_i, world_nei) < 1:
+                to_remove.append(i)
+        for i in to_remove:
+            openset.remove(i)
 
     def __weighted_a_star(self, start_location, end_location, cost_per_meter, weight, previous_point=None):
         """
@@ -429,7 +459,7 @@ class PathGenerator:
                 print(open_set, '\n')
                 self.print_dots_set(open_set)
             current = list(min(open_set, key=lambda x: f_score.get(x, float('inf'))))
-            if self.__euclidean_distance(current[:2], end_location) <= self._stride_length:  # The stop condition.
+            if self.__euclidean_distance(current[:2], end_location) <= 2 * self._stride_length:  # The stop condition.
                 path = [current[:2]]
                 while tuple(current) in came_from.keys():
                     current = came_from.get(tuple(current))
@@ -438,19 +468,20 @@ class PathGenerator:
 
             open_set.remove(tuple(current))
             if current[2] is None:
-                strides = self._get_possible_strides_discrete(current[:2], None)  # randomizing the first possible strides
+                strides = self._get_possible_strides(current[:2], None)  # randomizing the first possible strides
             else:
-                strides = self._get_possible_strides_discrete(current[:2], current[2:])  # randomizing the first possible strides
+                strides = self._get_possible_strides(current[:2], current[2:])  # randomizing the first possible strides
 
             num_legal_strides = len(strides)
             for stride in strides:
                 neighbor = [sum(x) for x in zip(stride, current[:2])]
                 if self.__is_stride_legal(neighbor, current[:2]):
+                    self.__remove_already_inside(neighbor, open_set)
                     move_cost = cost_per_meter * self.__euclidean_distance(current, neighbor)
                     tentative_g_score = g_score.get(tuple(current), float('inf')) + move_cost
                     neighbor_state = tuple(neighbor + current[:2])
                     if tentative_g_score < g_score.get(neighbor_state, float('inf')):
-                        came_from[neighbor_state] = current[:2]
+                        came_from[neighbor_state] = current
                         g_score[neighbor_state] = tentative_g_score
                         f_score[neighbor_state] = tentative_g_score + self.__h(neighbor, end_location, weight)
                         if neighbor_state not in open_set:
@@ -474,6 +505,7 @@ class PathGenerator:
             previous_step = None
             if len(path) > 1:
                 previous_step = path[-2]
+            #self.__generate_h(next_goal)
             new_path = self.__weighted_a_star(cur_start, next_goal, cost_per_meter, weight, previous_step)
             if not new_path and len(path) > 1:
                 path = path[:-1]
@@ -481,7 +513,7 @@ class PathGenerator:
                 path += new_path[1:]
             cur_start = path[-1]
             if (len(path) - 1) * self._stride_length * cost_per_meter > max_cost:  # TODO: trim the path differently
-                return path[:int((max_cost / cost_per_meter)/ self._stride_length) + 1]
+                return path[:int((max_cost / cost_per_meter) / self._stride_length) + 1]
 
     def __create_path_csv_file(self, path: list,  directory: str, path_number: int):
         """
