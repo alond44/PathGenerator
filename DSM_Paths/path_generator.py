@@ -375,7 +375,7 @@ class PathGenerator:
         path_cost = 0
         while True:
             new_pos_option = Point(cur_pos.x + step.x, cur_pos.y + step.y)
-            if self.__is_stride_legal(new_pos_option, cur_pos) and random.randrange(0, 100) <= 80:
+            if self.__is_stride_legal(new_pos_option, cur_pos):
                 # the other options from this point are strides without the chosen stride.
                 strides_copy = strides.copy()
                 self._remove_closest_step(strides_copy, step)
@@ -390,13 +390,16 @@ class PathGenerator:
                 # might be able to improve this.
                 strides = self._get_possible_strides(cur_pos=new_pos_option, prev_pos=cur_pos)
                 cur_pos = new_pos_option
+                if random.randrange(0, 100) <= 50:
+                    step = strides[random.randrange(len(strides))]
             else:
                 self._remove_closest_step(strides, step)
                 if len(strides) != 0:
                     step = strides[random.randrange(len(strides))]
                 else:  # the current pos got no legal strides left
                     while len(path_points) > 1:
-                        prev_pos, strides = path_points[-2]
+                        prev_pos, _ = path_points[-2]
+                        _, strides = path_points[-1]
                         del path_points[-1]
                         # Note: the stride's length supposed to be constant but numerical error cause it not to be.
                         # (errors that derive from the way we calculate the possible steps).
