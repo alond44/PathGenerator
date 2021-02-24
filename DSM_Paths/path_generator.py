@@ -24,6 +24,7 @@ DEBUG_OBSTACLE = False
 class PathType(Enum):
     MAP_ROAM = auto()
     AREA_EXPLORE = auto()
+    A_STAR = auto()
 
 
 @unique
@@ -167,7 +168,7 @@ class PathGenerator:
             if constraint <= 0:
                 print('Constrain should be positive')
                 return []
-            if path_type != PathType.MAP_ROAM and path_type != PathType.AREA_EXPLORE:
+            if path_type != PathType.MAP_ROAM and path_type != PathType.AREA_EXPLORE and path_type != PathType.A_STAR:
                 print('Path type is not one of the correct path generating ways.')
                 print('This method except PathType.AREA_EXPLORE and PathType.MAP_ROAM.')
                 return []
@@ -184,12 +185,15 @@ class PathGenerator:
             for i in range(path_num):  # The path generating loop.
                 if need_new_start_pos:
                     start_location = self._gen_random_point_under_constraints()
-                if path_type == PathType.AREA_EXPLORE:
+                if path_type == PathType.MAP_ROAM:
                     path = self.__gen_path_probability(start_location=start_location, max_cost=constraint,
                                                        cost_per_meter=cost_per_meter)
-                else:  # meaning path_type is PathType.MAP_ROAM
-                    path = [self.__gen_path_weighted_a_star(start_location=start_location, max_cost=constraint,
-                                                            cost_per_meter=cost_per_meter, weight=weight)]
+                elif path_type == PathType.AREA_EXPLORE:
+                    path = self.__gen_path_probability(start_location=start_location, max_cost=constraint,
+                                                       cost_per_meter=cost_per_meter, random_turn=True)
+                else:  # meaning path_type is PathType.A_STAR
+                    path = self.__gen_path_weighted_a_star(start_location=start_location, max_cost=constraint,
+                                                           cost_per_meter=cost_per_meter, weight=weight)
                 self.__create_path_csv_file(path=path, directory=result_folder_path, path_number=i+1)
                 paths += [path]
                 print(f"created path number {i + 1} out of {path_num}")
@@ -361,7 +365,7 @@ class PathGenerator:
             return travel_time
         return 0
 
-    def __gen_path_probability(self, start_location: list, max_cost: float, cost_per_meter: float):
+    def __gen_path_probability(self, start_location: list, max_cost: float, cost_per_meter: float, random_turn=False):
         """
             This method calculate a path with cost = cost max_cost where a move's cost is calculated as the distance
             between the two neighbors multiplied by cost_per_meter.
@@ -390,7 +394,7 @@ class PathGenerator:
                 # might be able to improve this.
                 strides = self._get_possible_strides(cur_pos=new_pos_option, prev_pos=cur_pos)
                 cur_pos = new_pos_option
-                if random.randrange(0, 100) <= 50:
+                if random_turn and random.randrange(0, 100) <= 50:
                     step = strides[random.randrange(len(strides))]
             else:
                 self._remove_closest_step(strides, step)
