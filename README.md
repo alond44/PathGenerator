@@ -30,7 +30,7 @@ The Parser is found in DsmParser.py and in order to run it you should use the fo
 ```python
 Inputpath = Path(__file__).parent.absolute()
 FileName = 'dsm_binary'
-_dsm = create_map(Inputpath, FileName)
+_, _, _, x_org, y_org, z_org, Wx, Wy, dWx, dWy, dsm = DSMParcer(Inputpath, FileName, False)
 ```
 Make sure your .bin file is under workingfolder/BinFiles/
 
@@ -41,19 +41,24 @@ The folder 'BinFiles' does not have to be inside your working folder. The other 
 ### 2. Create an Instance of the PathGenerator:
 
 ```python
-def __init__(self, velocity, flight_height, dsm=None, pixel_dist=2.0)
+def __init__(self, velocity, flight_height, dsm=None, origin=(0.0, 0.0, 0.0), map_dimensions=(0, 0), pixel_dimensions=(0.0, 0.0), stride_multiplier=1.0, max_angle=45.0)
 ```
 
 At this point you need to choose the flight parameters:
 * velocity: The drone's velocity (in meters per second).
 * flight_height: The flight's altitude (in meters).
 * dsm: The dsm map we have created at step 1. Note we can pass the default value (`None`) and load the map using the `init_map` method after generating an instance.
-* pixel_dist: The distance of a pixel's width in real life (in meters).
+* origin: A distance vector between the world map's origin and the dsm map's origin. len(origin) must be 3.
+* map_dimensions: A two value tuple: (<row_number>, <column_number>).
+* pixel_dimensions: A two value tuple: (<dWx>, <dWy>) where dWx is the distance (in meters) one stride in the x axis direction ((x, y) -> (x + 1, y)) represents and dWy is the distance (in meters) one stride in the y axis direction represents.
+* stride_multiplier: Adjusts the strides' length. default stride length is 0.6 * velocity must be > 0.
+* max_angle: The maximal drone turn degree we are allowing.
 
 #### Usage Example
 
 ```python
-pg = PathGenerator(velocity=50, flight_height=150, dsm=_dsm, pixel_dist=2)
+pg = PathGenerator(velocity=7.0, flight_height=-50.0, dsm=dsm_, origin=(x_org, y_org, z_org),
+                       map_dimensions=(Wx, Wy), pixel_dimensions=(dWx, dWy), max_angle=60.0)
 ```
 #### DSM Loading Alternative:
 
@@ -62,9 +67,11 @@ If you did not initiate the dsm  map in the constructor (passed `dsm=None`) you'
 ```python
 def init_map(self, input_path=None, file_name=None, save_tif=False, pixel_dist=2.0)
 ```
-This method essentially uses the `creat_map` function for you so the requirement concerning the BinFile folder still holds.
+This method essentially uses the `DSMParcer` function for you so the requirement concerning the BinFile folder still holds.
 
 ### 3. Change Map Resolution (Optional):
+
+TODO: decide if these methods are still relevant.
 
 #### Zoom In
 
