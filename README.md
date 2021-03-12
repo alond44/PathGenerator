@@ -1,7 +1,7 @@
 # Path Generator
 
 ## Introduction
-In the following explanation we'll demonstrate how to use our Path Generating system in order to: 
+In the following README file we'll demonstrate how to use our Path Generating system in order to: 
 * Create paths for the drone over the city. 
 * Adjust the different parameters to meet different flight requirements 
 * Get the outputed paths.
@@ -19,7 +19,7 @@ If needed, a requirements.txt file is included and can be installed on any conda
 After adapting your environment, import the map creation function, the PathGenerator class and our constants classes:
 
 ```python
-from DSM_Paths.DsmParser import create_map
+from DSM_Paths.DsmParser import DSMParcer
 from DSM_Paths.path_generator import PathGenerator, PathType, ConstraintType
 ```
 Now that you're all set, let's get to the main usage steps.
