@@ -181,7 +181,7 @@ class PathGenerator:
             if flag == ConstraintType.TIME:
                 cost_per_meter /= self._velocity  # (passing a meter takes (1 / velocity) seconds)
             paths = []
-            need_new_start_pos = start_location is None or not self._can_fly_over_in_bound(start_location)
+            need_new_start_pos = start_location is None or not self._in_legal_flight_zone(start_location)
             for i in range(path_num):  # The path generating loop.
                 if need_new_start_pos:
                     start_location = self._gen_random_point_under_constraints()
@@ -523,14 +523,16 @@ class PathGenerator:
     def _too_close_to_obstacle(self, polygon: ConvexPolygon, next_point: Point, cur_point: Point):
         next_world_point = self.__convert_map_point_to_world_point(next_point)
         cur_world_point = self.__convert_map_point_to_world_point(cur_point)
-        # Note: added this if statement.
-        if self._point_within_radius_from_line(polygon.sorted_points[-1], next_world_point, cur_world_point):
+        # Note: added these conversions and if statements as the loop does not cover the last polygon point.
+        poly_point = self.__convert_map_point_to_world_point(polygon.sorted_points[-1])
+        if self._point_within_radius_from_line(poly_point, next_world_point, cur_world_point):
             return True
-        d2 = self.__euclidean_distance(polygon.sorted_points[-1], next_point)
+        d = self.__euclidean_distance(polygon.sorted_points[-1], next_point)
+        if d <= self.RADIUS:
+            return True
         for i in range(-1, len(polygon.sorted_points) - 1):
-            d1 = d2
-            d2 = self.__euclidean_distance(polygon.sorted_points[i + 1], next_point)
-            if d1 <= self.RADIUS or d2 <= self.RADIUS:
+            d = self.__euclidean_distance(polygon.sorted_points[i + 1], next_point)
+            if d <= self.RADIUS:
                 return True
             poly1 = self.__convert_map_point_to_world_point(polygon.sorted_points[i])
             poly2 = self.__convert_map_point_to_world_point(polygon.sorted_points[i + 1])
@@ -566,6 +568,11 @@ class PathGenerator:
                     self._too_close_to_obstacle(self._obstacle_list[idx], next_point, cur_point):
                 return False
         return True
+
+    def _in_legal_flight_zone(self, point: Point):
+        """"Returns true if the point is within RADIUS of any of the obstacle polygons"""
+        return self._obstacle_index.count((point.x - self.RADIUS, point.y - self.RADIUS,
+                                           point.x + self.RADIUS, point.y + self.RADIUS)) == 0
 
     """
     Map processing methods. 
@@ -642,7 +649,6 @@ class PathGenerator:
         return {}
 
     def __get_obstacle_polygon_list(self):
-        # binary_obstacle_map = [[0] * self._map_dim[0]] * self._map_dim[1]
         binary_obstacle_map = [[0 for _ in range(self._map_dim[1])] for _ in range(self._map_dim[0])]
         obstacle_list = []
         for x in range(self._map_dim[0]):
@@ -700,10 +706,10 @@ class PathGenerator:
         while True:
             rand_x = np.random.uniform(self._x_lower_bound, self._x_upper_bound)
             rand_y = np.random.uniform(self._y_lower_bound, self._y_upper_bound)
+            point = Point(rand_x, rand_y)
             # checking that the randomized point does not intersect with non of the obstacle polygons.
-            if self._obstacle_index.count((rand_x - self.RADIUS, rand_y - self.RADIUS,
-                                           rand_x + self.RADIUS, rand_y + self.RADIUS)) == 0:
-                return Point(rand_x, rand_y)
+            if self._in_legal_flight_zone(point):
+                return point
 
     def _adjust_stride(self):
         """Makes sure the stride length does not deviate from the maximum and minimum stride length values."""

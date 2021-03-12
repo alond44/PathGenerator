@@ -1,7 +1,6 @@
 import time
 from pathlib import Path
 import numpy as np
-import sys
 
 from DSM_Paths.DsmParser import DSMParcer
 from DSM_Paths.path_generator import PathGenerator, PathType, ConstraintType
@@ -168,7 +167,7 @@ if __name__ == "__main__":
     _, _, _, x_org, y_org, z_org, Wx, Wy, dWx, dWy, dsm_ = DSMParcer(Inputpath, FileName, False)
 
     pg = PathGenerator(velocity=7.0, flight_height=-50.0, dsm=dsm_, origin=(x_org, y_org, z_org),
-                       map_dimensions=(Wx, Wy), pixel_dimensions=(dWx, dWy), max_angle=60.0)
+                       map_dimensions=(Wx, Wy), pixel_dimensions=(dWx, dWy), max_angle=25.0)
 
     """
     constraint = 70
@@ -177,7 +176,7 @@ if __name__ == "__main__":
                                                          path_number=50)
     print(f"Average error: {error_avg}\nAverage constraint: {distance_avg}")
     """
-    paths = pg.gen_paths(ConstraintType.TIME, 300, PathType.AREA_EXPLORE, path_num=5, to_print=True)
+    paths = pg.gen_paths(ConstraintType.TIME, 100, PathType.AREA_EXPLORE, path_num=5, to_print=True)
 
     # pg.print_path()
     # pg.gen_paths(ConstraintType.TIME, 50, PathType.MAP_ROAM, path_num=1, to_print=True, weight=1.5)
