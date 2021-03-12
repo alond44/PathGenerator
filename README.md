@@ -58,7 +58,7 @@ At this point you need to choose the flight parameters:
 
 ```python
 pg = PathGenerator(velocity=7.0, flight_height=-50.0, dsm=dsm_, origin=(x_org, y_org, z_org),
-                       map_dimensions=(Wx, Wy), pixel_dimensions=(dWx, dWy), max_angle=60.0)
+                       map_dimensions=(Wx, Wy), pixel_dimensions=(dWx, dWy), max_angle=30.0)
 ```
 #### DSM Loading Alternative:
 
