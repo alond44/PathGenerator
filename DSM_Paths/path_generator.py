@@ -38,19 +38,20 @@ class PathGenerator:
     This is the main class. To create paths, create an instance of a PathGenerator with the desired parameters then,
     call gen_paths with the constraints of your choosing.
     """
-    SAMPLE_RATE = 0.6       # The drone way point minimal distance coefficient is SAMPLE_RATE * velocity.
-    MAX_STRIDE_LEN = 6.0    # Allowing the largest stride length to be MAX_STRIDE_LEN meters.
-    MIN_STRIDE_LEN = 2.0    # Allowing the smallest stride length to be MIN_STRIDE_LEN meters.
-    MAX_ANGLE = 60.0        # Allowing the largest maximum turn angle value to be MAX_ANGLE meters
-    MIN_ANGLE = 20.0        # Allowing the smallest maximum turn angle value to be MIN_ANGLE meters
-    DEGREE_DIVISOR = 2      # Allowing DEGREE_DIVISOR possible angles of right turn and DEGREE_DIVISOR of left turn.
-    RADIUS = 1.2            # We don't allow the drone to be within RADIUS meter of an obstacle.
+    SAMPLE_RATE = 0.6  # The drone way point minimal distance coefficient is SAMPLE_RATE * velocity.
+    MAX_STRIDE_LEN = 6.0  # Allowing the largest stride length to be MAX_STRIDE_LEN meters.
+    MIN_STRIDE_LEN = 2.0  # Allowing the smallest stride length to be MIN_STRIDE_LEN meters.
+    MAX_ANGLE = 60.0  # Allowing the largest maximum turn angle value to be MAX_ANGLE meters
+    MIN_ANGLE = 20.0  # Allowing the smallest maximum turn angle value to be MIN_ANGLE meters
+    DEGREE_DIVISOR = 2  # Allowing DEGREE_DIVISOR possible angles of right turn and DEGREE_DIVISOR of left turn.
+    RADIUS = 1.2  # We don't allow the drone to be within RADIUS meter of an obstacle.
     EPSILON = 0.001
     # Important: read the doc if you decide to change these constants.
     # These are used to better our obstacle creation process.
-    MIN_RECURSION_DEPT = 50                     # We don't allow the recursive method for obstacle tracing to have
-                                                # a maximal dept lower then 50.
-    RECURSION_TO_MAP_SIZE_RATIO = 75.0/770.0    # Used to set a depth maximum for the obstacle finding function.
+    MIN_RECURSION_DEPT = 50  # We don't allow the recursive method for obstacle tracing to have
+    # a maximal dept lower then 50.
+    RECURSION_TO_MAP_SIZE_RATIO = 75.0 / 770.0  # Used to set a depth maximum for the obstacle finding function.
+    RANDOM_TURN_ANGLE = 100.0
 
     def __init__(self, velocity, flight_height, dsm=None, origin=(0.0, 0.0, 0.0), map_dimensions=(0, 0),
                  pixel_dimensions=(0.0, 0.0), stride_multiplier=1.0, max_angle=45.0):
@@ -194,7 +195,7 @@ class PathGenerator:
                 else:  # meaning path_type is PathType.A_STAR
                     path = self.__gen_path_weighted_a_star(start_location=start_location, max_cost=constraint,
                                                            cost_per_meter=cost_per_meter, weight=weight)
-                self.__create_path_csv_file(path=path, directory=result_folder_path, path_number=i+1)
+                self.__create_path_csv_file(path=path, directory=result_folder_path, path_number=i + 1)
                 paths += [path]
                 print(f"created path number {i + 1} out of {path_num}")
             if to_print:
@@ -370,6 +371,8 @@ class PathGenerator:
             This method calculate a path with cost = cost max_cost where a move's cost is calculated as the distance
             between the two neighbors multiplied by cost_per_meter.
         """
+        random_turn_cost = \
+            (self.RANDOM_TURN_ANGLE * self.DEGREE_DIVISOR / self._max_angle) * self._stride_length * cost_per_meter
         cur_pos = start_location
         strides = self._get_possible_strides(cur_pos)  # randomizing the first possible strides
         step = strides[random.randrange(len(strides))]  # randomizing the first move
@@ -377,6 +380,7 @@ class PathGenerator:
         strides_copy.remove(step)
         path_points = [(cur_pos, strides_copy)]
         path_cost = 0
+        made_turn = False
         while True:
             new_pos_option = Point(cur_pos.x + step.x, cur_pos.y + step.y)
             if self.__is_stride_legal(new_pos_option, cur_pos):
@@ -386,16 +390,28 @@ class PathGenerator:
                 path_points += [(new_pos_option, strides_copy)]
                 path_cost += self.__euclidean_distance(new_pos_option, cur_pos) * cost_per_meter
 
+                if random_turn and random.randrange(0, 100) > 94 and max_cost - path_cost > random_turn_cost:
+                    if len(path_points) > 2:
+                        addition_cost, path_addition, cur_addition, prev_addition \
+                            = self._add_turn(Point(new_pos_option.x, new_pos_option.y), Point(cur_pos.x, cur_pos.y),
+                                             self.RANDOM_TURN_ANGLE, cost_per_meter)
+                        if path_addition is not None:
+                            path_points += path_addition
+                            path_cost += addition_cost
+                            new_pos_option = cur_addition
+                            cur_pos = prev_addition
+                            made_turn = True
+
                 if abs(max_cost - path_cost) < cost_per_meter * self._stride_length:
                     path = []
                     for point in path_points:
                         path += [point[0]]
                     return path
-                # might be able to improve this.
                 strides = self._get_possible_strides(cur_pos=new_pos_option, prev_pos=cur_pos)
-                cur_pos = new_pos_option
-                if random_turn and random.randrange(0, 100) <= 50:
+                if made_turn:
+                    made_turn = False
                     step = strides[random.randrange(len(strides))]
+                cur_pos = new_pos_option
             else:
                 self._remove_closest_step(strides, step)
                 if len(strides) != 0:
@@ -474,7 +490,7 @@ class PathGenerator:
             if (len(path) - 1) * cost_per_meter > max_cost:
                 return path[:int(max_cost / cost_per_meter) + 1]
 
-    def __create_path_csv_file(self, path: list,  directory: str, path_number: int):
+    def __create_path_csv_file(self, path: list, directory: str, path_number: int):
         """
             write the given path to a file named: 'path_<path_number>.csv' in the given directory.
         """
@@ -495,6 +511,41 @@ class PathGenerator:
                 writer.writerow([x, y, z, vx, vy, 0])
             final_pos = self.__convert_map_point_to_world_point(path[-1])
             writer.writerow([final_pos.x, final_pos.y, z, 0, 0, 0])
+
+    def _add_turn(self, cur_pos: Point, prev_pos: Point, turn_angle: float, cost_per_meter: float):
+        total_turn = 0.0
+        addition_cost = 0.0
+        path_addition = []
+        random_sign = -1 if random.randrange(1) == 0 else 1
+        while total_turn < turn_angle:
+            strides = self._get_possible_strides(cur_pos, prev_pos)
+            while True:
+                if len(strides) == 0:
+                    return 0.0, None, Point(0, 0), Point(0, 0)
+                step = strides[random.randrange(len(strides))]
+                next_pos = Point(cur_pos.x + step.x, cur_pos.y + step.y)
+                next_angle = self._get_orientation_degree(next_pos, cur_pos)
+                cur_angle = self._get_orientation_degree(cur_pos, prev_pos)
+                step_angle = next_angle - cur_angle
+                if abs(step_angle) < self.EPSILON:
+                    step_sign = 0
+                else:
+                    step_sign = -1 if step_angle < 0 else 1
+                if step_sign == random_sign:
+                    break
+                else:
+                    self._remove_closest_step(strides, step)
+            if self.__is_stride_legal(next_pos, cur_pos):
+                strides_copy = strides.copy()
+                self._remove_closest_step(strides_copy, step)
+                path_addition += [(next_pos, strides_copy)]
+                addition_cost += self.__euclidean_distance(next_pos, cur_pos) * cost_per_meter
+                total_turn += abs(step_angle)
+                prev_pos = cur_pos
+                cur_pos = next_pos
+            else:
+                return 0.0, None, Point(0, 0), Point(0, 0)
+        return addition_cost, path_addition, cur_pos, prev_pos
 
     """
     Constraint checks
@@ -727,6 +778,15 @@ class PathGenerator:
         self.__max_recursion_limit = int(self.__adjustment(float(self._max_recursion_limit),
                                                            sys.getrecursionlimit() - 10, self.MIN_RECURSION_DEPT))
 
+    def _get_orientation_degree(self, cur_pos: Point, prev_pos: Point):
+        """
+        Receives two points and return the angle between the vector connecting these two points and the x axis.
+        """
+        world_cur_pos = self.__convert_map_point_to_world_point(cur_pos)
+        world_prev_pos = self.__convert_map_point_to_world_point(prev_pos)
+        cur_orientation = Point(world_cur_pos.x - world_prev_pos.x, world_cur_pos.y - world_prev_pos.y)
+        return (math.degrees(math.atan2(cur_orientation.y, cur_orientation.x)) + 360) % 360
+
     def _get_possible_strides(self, cur_pos, prev_pos=None):
         """
             receives the current position and a previous position (so we can calculate orientation)
@@ -739,10 +799,7 @@ class PathGenerator:
         if prev_pos is None:
             cur_deg = random.uniform(0, 360)
         else:
-            world_cur_pos = self.__convert_map_point_to_world_point(cur_pos)
-            world_prev_pos = self.__convert_map_point_to_world_point(prev_pos)
-            cur_orientation = Point(world_cur_pos.x - world_prev_pos.x, world_cur_pos.y - world_prev_pos.y)
-            cur_deg = ((math.degrees(math.atan2(cur_orientation.y, cur_orientation.x)) + 360) % 360)
+            cur_deg = self._get_orientation_degree(cur_pos, prev_pos)
         degrees1 = [cur_deg + (self._max_angle * float(i) / float(self.DEGREE_DIVISOR))
                     for i in range(1, self.DEGREE_DIVISOR + 1)]
         degrees2 = [cur_deg - (self._max_angle * float(i) / float(self.DEGREE_DIVISOR))
@@ -754,13 +811,6 @@ class PathGenerator:
                           self._stride_length * math.sin(math.radians(degree)))
             orientations.append(self.__convert_world_point_to_map_point(point))
         return orientations
-
-    """def _get_neighbors(self, cur_pos, prev_pos=None):  # TODO: delete if not in use.
-        strides = self._get_possible_strides(cur_pos, prev_pos)
-        for stride in strides:
-            next_x = cur_pos[0] + stride[0]
-            next_y = cur_pos[1] + stride[1]
-            yield self.__convert_world_pos_to_map_pos([next_x, next_y])"""
 
     def _remove_closest_step(self, strides: list, step: Point):
         for i in range(len(strides)):
