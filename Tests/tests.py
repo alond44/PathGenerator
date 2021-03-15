@@ -15,12 +15,10 @@ def test_zoom_out():
     pg = PathGenerator(velocity=7, flight_height=50, dsm=dsm_, origin=(0, 0, 0),
                        map_dimensions=(6, 4), pixel_dimensions=(5, 10))
     print("Initial sizes:")
-    pg.print_map_sizes()
     pg.print_path()
     zoom_m = 2
     pg.map_zoom_out(zoom_m)
     print(f"\nSizes after zoom in x{zoom_m}:")
-    pg.print_map_sizes()
     pg.print_path()
 
 
@@ -175,5 +173,5 @@ if __name__ == "__main__":
 
     # simple_example(pg)
     # path_generating_error_test(pg, ConstraintType.TIME, 100.0, path_num=100)
-    path_generating_calculation_time_test(pg, ConstraintType.TIME, 100.0, 100)
-    # paths = pg.gen_paths(ConstraintType.TIME, 100, PathType.AREA_EXPLORE, path_num=5, to_print=True)
+    # path_generating_calculation_time_test(pg, ConstraintType.TIME, 100.0, 100)
+    paths = pg.gen_paths(ConstraintType.TIME, 100, PathType.AREA_EXPLORE, path_num=5, to_print=True)

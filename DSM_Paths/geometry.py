@@ -1,4 +1,4 @@
-# TODO: add scipy to the requirements
+# TODO: update the requirements.txt file!
 from scipy.spatial.qhull import ConvexHull
 import numpy as np
 import math

@@ -45,6 +45,7 @@ class PathGenerator:
     MIN_ANGLE = 20.0            # Allowing the smallest maximum turn angle value to be MIN_ANGLE meters
     DEGREE_DIVISOR = 2          # Allowing DEGREE_DIVISOR possible angles of right turn and DEGREE_DIVISOR of left turn.
     RADIUS = 1.2                # We don't allow the drone to be within RADIUS meter of an obstacle.
+    RANDOM_TURN_PROB = 0.90     # The probability of a random turn while creating paths of type AREA_EXPLORE.
     RANDOM_TURN_ANGLE = 120.0   # The desired turn angle during a random turn (in degrees).
     EPSILON = 0.001
     # Important: read the doc if you decide to change these constants.
@@ -390,7 +391,8 @@ class PathGenerator:
                 path_points += [(new_pos_option, strides_copy)]
                 path_cost += self.__euclidean_distance(new_pos_option, cur_pos) * cost_per_meter
 
-                if random_turn and random.randrange(0, 100) > 94 and max_cost - path_cost > random_turn_max_cost:
+                if random_turn and random.randrange(0, 100) > 100 * self.RANDOM_TURN_PROB and\
+                        max_cost - path_cost > random_turn_max_cost:
                     if len(path_points) > 2:
                         addition_cost, path_addition, cur_addition, prev_addition \
                             = self._add_turn(Point(new_pos_option.x, new_pos_option.y), Point(cur_pos.x, cur_pos.y),
@@ -513,6 +515,10 @@ class PathGenerator:
             writer.writerow([final_pos.x, final_pos.y, z, 0, 0, 0])
 
     def _add_turn(self, cur_pos: Point, prev_pos: Point, turn_angle: float, cost_per_meter: float):
+        """
+        This method responsible for random turns when generating paths of type AREA_EXPLORE.
+        :return: The turn's way points and strides list, the turn's cost, and the new current and previous way points.
+        """
         total_turn = 0.0
         addition_cost = 0.0
         path_addition = []
@@ -621,7 +627,11 @@ class PathGenerator:
         return True
 
     def _in_legal_flight_zone(self, point: Point):
-        """"Returns true if the point is within RADIUS of any of the obstacle polygons"""
+        """"
+        Returns true if the point is within RADIUS of any of the *obstacle polygons*
+        Note:   - this method is using the obstacle's R-Tree to check if the zone is clear and the other obstacle
+                  detecting methods don't (because they are used to initiate the data structure).
+        """
         return self._obstacle_index.count((point.x - self.RADIUS, point.y - self.RADIUS,
                                            point.x + self.RADIUS, point.y + self.RADIUS)) == 0
 
