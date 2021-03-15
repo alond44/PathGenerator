@@ -114,7 +114,7 @@ These static fields responsible to many of the class's functionalities.
 
 * SAMPLE_RATE - this field indicates the way point sampling rate of the drone. A sampling rate of 0.5 way points per second means that each of the paths' way points need to be far enough from it's previous so that the drone won't fly past a way point and end up skipping it an option that might cause the drone to crash like shown in the following image.
 
-<img src="https://github.com/alond44/PathGenerator/blob/random_turn/Ilustrations/Collision%20Caused%20By%20Waypoint%20Skip.png" width="600">
+<img src="https://github.com/alond44/PathGenerator/blob/random_turn/Ilustrations/Collision%20Caused%20By%20Waypoint%20Skip.png" width="400">
 
 * MAX_STRIDE_LEN and MIN_STRIDE_LEN - these fields are responsible to adapt the distance traveled between way points so that the strides won't be too short and cost use in calculation time and not too long and the PathGenerator will have trouble moving through tight hallways (considering the drone needs to keep safety distance from obstacles).
 * MAX_ANGLE and MIN_ANGLE - similar to the stride length adjusting fields, these are used to adjust the turn angle recieved from the user while building instances. If the user inputs a turn angle larger than MAX_ANGLE, the turn angle will be MAX_ANGLE (and the similarly for MIN_ANGLE). This is used so the angles won't be too wide and the flight will be physically possible (while keeping a constant flight speed) and so that the angles won't be too narrow and multiple stride options won't be as different from each other.
