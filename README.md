@@ -92,7 +92,7 @@ pg.gen_paths(ConstraintType.TIME, 100, PathType.AREA_EXPLORE, path_num=5, to_pri
 ```
 
 
-### 4. Static Fields:
+### 4. Static Fields and Obstacle Debug Option:
 
 ```python
     SAMPLE_RATE = 0.6           # The drone way point minimal distance coefficient is SAMPLE_RATE * velocity.
@@ -123,7 +123,15 @@ These static fields responsible to many of the class's functionalities.
 * RANDOM_TURN_ANGLE - relevant for generating AREA_EXPLORE paths only. This field sets the maximal turn angle preformed while randomizing a turn when generating a path (the turn angle will be smaller if the drone could not preform the full turn angle). You can make the drone to do random circles while setting the value to 360 :).
 * EPSILON - a value that affects how we determine equality between two values. we might have numeric errors that can cause two values that supposed to be equal be slightly different therefore we use that variable to determin equality (|a - b| < EPSILON meaning a == b). There shouldn't be any need to change that value.
 * RECURSION_TO_MAP_SIZE_RATIO - we use recursion depth limitation in the recursive method used for creating the obstacle's polygons. We limit the depth to avoid exceeding the system's maximal depth and to create smaller obstacle polygons so we won't delimit as much legal flight zone (we use convex polygons to represent the obstacles and the might cover legal flight zone when delimiting concave obstacles - like a 'c' shaped one). 
-* MIN_RECURSION_DEPT - this helps us adjust the recursion depth recieved after calculating it using the previous field (upper limit is received using the os python library).  
+* MIN_RECURSION_DEPT - this helps us adjust the recursion depth recieved after calculating it using the previous field (upper limit is received using the os python library).
+
+ #### DEBUG_OBSTACLE
+ The path_generator file contains a boolean variable DEBUG_OBSTACLE that when True the obstacle's polygons will be printed when calling the print_path method.
+ If you want to check your obstacle creation, you can set the variable to be True, create a PathGenerator instance and call:
+ 
+ ```python
+ pg.print_path()
+ ```
 
 ### Extra Methods
 
