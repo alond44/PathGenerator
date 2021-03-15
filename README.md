@@ -102,6 +102,7 @@ pg.gen_paths(ConstraintType.TIME, 100, PathType.AREA_EXPLORE, path_num=5, to_pri
     MIN_ANGLE = 20.0            # Allowing the smallest maximum turn angle value to be MIN_ANGLE meters
     DEGREE_DIVISOR = 2          # Allowing DEGREE_DIVISOR possible angles of right turn and DEGREE_DIVISOR of left turn.
     RADIUS = 1.2                # We don't allow the drone to be within RADIUS meter of an obstacle.
+    RANDOM_TURN_PROB = 0.90     # The probability of a random turn while creating paths of type AREA_EXPLORE.
     RANDOM_TURN_ANGLE = 120.0   # The desired turn angle during a random turn (in degrees).
     EPSILON = 0.001
     # Important: read the doc if you decide to change these constants.
@@ -122,6 +123,7 @@ These static fields responsible to many of the class's functionalities.
 * RADIUS - the drone will allways be at least RADIUS meters away from every obstacle while following outputed paths.
 * RANDOM_TURN_ANGLE - relevant for generating AREA_EXPLORE paths only. This field sets the maximal turn angle preformed while randomizing a turn when generating a path (the turn angle will be smaller if the drone could not preform the full turn angle). You can make the drone to do random circles while setting the value to 360 :).
 * EPSILON - a value that affects how we determine equality between two values. we might have numeric errors that can cause two values that supposed to be equal be slightly different therefore we use that variable to determin equality (|a - b| < EPSILON meaning a == b). There shouldn't be any need to change that value.
+* RANDOM_TURN_PROB - explained in the comment.
 * RECURSION_TO_MAP_SIZE_RATIO - we use recursion depth limitation in the recursive method used for creating the obstacle's polygons. We limit the depth to avoid exceeding the system's maximal depth and to create smaller obstacle polygons so we won't delimit as much legal flight zone (we use convex polygons to represent the obstacles and the might cover legal flight zone when delimiting concave obstacles - like a 'c' shaped one). 
 * MIN_RECURSION_DEPT - this helps us adjust the recursion depth recieved after calculating it using the previous field (upper limit is received using the os python library).
 
