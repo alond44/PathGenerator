@@ -45,7 +45,7 @@ class PathGenerator:
     MIN_ANGLE = 20.0            # Allowing the smallest maximum turn angle value to be MIN_ANGLE meters
     DEGREE_DIVISOR = 2          # Allowing DEGREE_DIVISOR possible angles of right turn and DEGREE_DIVISOR of left turn.
     RADIUS = 1.2                # We don't allow the drone to be within RADIUS meter of an obstacle.
-    RANDOM_TURN_PROB = 0.90     # The probability of a random turn while creating paths of type AREA_EXPLORE.
+    RANDOM_TURN_PROB = 0.10     # The probability of a random turn while creating paths of type AREA_EXPLORE.
     RANDOM_TURN_ANGLE = 120.0   # The desired turn angle during a random turn (in degrees).
     EPSILON = 0.001
     # Important: read the doc if you decide to change these constants.
@@ -194,8 +194,12 @@ class PathGenerator:
                     path = self.__gen_path_probability(start_location=start_location, max_cost=constraint,
                                                        cost_per_meter=cost_per_meter, random_turn=True)
                 else:  # meaning path_type is PathType.A_STAR
-                    path = self.__gen_path_weighted_a_star(start_location=start_location, max_cost=constraint,
-                                                           cost_per_meter=cost_per_meter, weight=weight)
+                    list_start = [start_location.x, start_location.y]  # converting Point to list
+                    list_path = self.__gen_path_weighted_a_star(start_location=list_start, max_cost=constraint,
+                                                                cost_per_meter=cost_per_meter, weight=weight)
+                    path = []
+                    for item in list_path:  # converting back to Point
+                        path.append(Point(item[0], item[1]))
                 self.__create_path_csv_file(path=path, directory=result_folder_path, path_number=i + 1)
                 paths += [path]
                 print(f"created path number {i + 1} out of {path_num}")
@@ -206,88 +210,6 @@ class PathGenerator:
         else:
             print('Need to initiate map using init_map before we start.')
             return []
-
-    def map_zoom_in(self, multiplier: int):
-        """
-        Enhancing the dsm resolution by the given multiplier.
-         Parameters
-        ---------
-        multiplier : int
-             The enhance multiplier. Must be > 0.
-        """
-        if self._dsm is not None:
-            if multiplier <= 0:
-                return  # Not allowing a negative enhance multiplier.
-            prev_dim = self._map_dim
-            self._map_dim = [prev_dim[0] * multiplier, prev_dim[1] * multiplier]
-            new_dsm = [[0] * self._map_dim[1]] * self._map_dim[0]
-            # new_dsm = [[0 for j in range(self._map_dim[1])] for i in range(self._map_dim[0])]
-            for x in range(0, self._map_dim[0]):
-                for y in range(0, self._map_dim[1]):
-                    new_dsm[x][y] = self._dsm[int(x / multiplier)][int(y / multiplier)]
-            self._pixel_dim = [self._pixel_dim[0] / float(multiplier), self._pixel_dim[1] / float(multiplier)]
-            self._dsm = np.array(new_dsm)
-            # These fields are used to determine the boundaries of the map (where the object appear).
-            self._x_lower_bound *= multiplier
-            self._y_lower_bound *= multiplier
-            self._x_upper_bound = ((self._x_upper_bound + 1) * multiplier) - 1
-            self._y_upper_bound = ((self._y_upper_bound + 1) * multiplier) - 1
-            # creating the obstacles.
-            self._obstacle_list = self.__get_obstacle_polygon_list()
-            self._obstacle_index = index.Index()  # creating the obstacle's rtree.
-            self.__initiate_obstacle_index()
-        else:
-            print('Need to initiate the dsm map using init_map before using the zoom in method.')
-
-    def map_zoom_out(self, multiplier: int):
-        """
-        Downgrading the dsm resolution by the given multiplier.
-         Parameters
-        ---------
-        multiplier : int
-            The pixel merge multiplier. Must be > 0.
-
-         Notes
-        ---------
-        -   Decreasing resolution might cause information loss as we use max value substitution.
-        -   Decreasing resolution using a multiplier value that the map's sides are not divisible by will cause
-            representation of parts of the world map that are not included in the given dsm.
-        """
-        if self._dsm is not None:
-            prev_dim = list(self._map_dim)
-            new_x_dim = int(prev_dim[0] / multiplier) if prev_dim[0] % multiplier == 0 else \
-                1 + int(prev_dim[0] / multiplier)
-            new_y_dim = int(prev_dim[1] / multiplier) if prev_dim[1] % multiplier == 0 else \
-                1 + int(prev_dim[1] / multiplier)
-            new_dsm = [[0] * new_y_dim] * new_x_dim
-            # new_dsm = [[0 for j in range(new_y_dim)] for i in range(new_x_dim)]
-            for x in range(0, new_x_dim):
-                for y in range(0, new_y_dim):
-                    maxi = -np.inf
-                    for i in range(0, multiplier):
-                        for j in range(0, multiplier):
-                            x_idx = x * multiplier + i
-                            y_idx = y * multiplier + j
-                            val = -np.inf if x_idx >= self._map_dim[0] or y_idx >= self._map_dim[1] \
-                                else self._dsm[x_idx][y_idx]
-                            maxi = max(maxi, val)
-                    new_dsm[x][y] = maxi
-            self._map_dim = [new_x_dim, new_y_dim]
-            dwx = self._pixel_dim[0] * multiplier
-            dwy = self._pixel_dim[1] * multiplier
-            self._pixel_dim = [dwx, dwy]
-            self._dsm = np.array(new_dsm)
-            # These fields are used to determine the boundaries of the map (where the object appear).
-            self._x_lower_bound = int(self._x_lower_bound / multiplier)
-            self._y_lower_bound = int(self._y_lower_bound / multiplier)
-            self._x_upper_bound = int(self._x_upper_bound / multiplier)
-            self._y_upper_bound = int(self._y_upper_bound / multiplier)
-            # creating the obstacles.
-            self._obstacle_list = self.__get_obstacle_polygon_list()
-            self._obstacle_index = index.Index()  # creating the obstacle's rtree.
-            self.__initiate_obstacle_index()
-        else:
-            print('Need to initiate the dsm map using init_map before using the zoom out method.')
 
     def print_path(self, path=None, path_color='r', path_style='--'):
         """
@@ -391,7 +313,7 @@ class PathGenerator:
                 path_points += [(new_pos_option, strides_copy)]
                 path_cost += self.__euclidean_distance(new_pos_option, cur_pos) * cost_per_meter
 
-                if random_turn and random.randrange(0, 100) > 100 * self.RANDOM_TURN_PROB and\
+                if random_turn and random.randrange(0, 100) < 100 * self.RANDOM_TURN_PROB and\
                         max_cost - path_cost > random_turn_max_cost:
                     if len(path_points) > 2:
                         addition_cost, path_addition, cur_addition, prev_addition \
@@ -436,61 +358,84 @@ class PathGenerator:
                         path_cost = 0
                     step = strides[random.randrange(len(strides))]
 
-    def __h(self, location, goal, weight):
+    def __h(self, location: list, goal: list, weight: float):
         """The heuristic function we used - euclidean distance."""
-        return self.__euclidean_distance(goal, location) * weight
+        return self.__euclidean_distance(Point(goal[0], goal[1]), Point(location[0], location[1])) * weight
 
-    def __weighted_a_star(self, start_location, end_location, cost_per_meter, weight):
+    def __weighted_a_star(self, start_location: list, end_location: list, cost_per_meter: float, weight: float,
+                          previous_point=None):
         """
-            This method calculates weighted A* algorithm between start_location and end_location.
-            The weight (epsilon) for weighted A* is the parameter weight.
+        This method calculates weighted A* algorithm between start_location and end_location.
+        The weight (epsilon) for weighted A* is the parameter weight.
         """
-        open_set = {tuple(start_location)}
+        if previous_point is None:
+            previous_point = [None]
+        start_state = start_location + previous_point
+        open_set = {tuple(start_state)}
         came_from = {}
-        g_score = {tuple(start_location): 0}
-        f_score = {tuple(start_location): self.__h(start_location, end_location, weight)}
-
+        g_score = {tuple(start_state): 0}
+        f_score = {tuple(start_state): self.__h(start_location, end_location, weight)}
         while bool(open_set):
-            current = min(open_set, key=lambda x: f_score.get(x, float('inf')))
-            if current == tuple(end_location):  # The stop condition.
-                path = [list(current)]
-                while current in came_from.keys():
-                    current = came_from.get(current)
-                    path.insert(0, list(current))
+            current = list(min(open_set, key=lambda x: f_score.get(x, float('inf'))))
+            # The stop condition.
+            if self.__euclidean_distance(Point(current[:2][0], current[:2][1]),
+                                         Point(end_location[0], end_location[1])) <= 2 * self._stride_length:
+                path = [current[:2]]
+                while tuple(current) in came_from.keys():
+                    current = came_from.get(tuple(current))
+                    path.insert(0, current[:2])
                 return path
 
-            open_set.remove(current)
-            directions = [[-1, 0], [1, 0], [0, -1], [0, 1]]
-            for direction in directions:
-                neighbor = [sum(x) for x in zip(direction, list(current))]
-                if self._can_fly_over_in_bound(Point(neighbor[0], neighbor[1])):
+            open_set.remove(tuple(current))
+            if current[2] is None:  # randomizing the first possible strides
+                strides = self._get_possible_strides(Point(current[:2][0], current[:2][1]), None)
+            else:  # randomizing the first possible strides
+                strides = self._get_possible_strides(Point(current[:2][0], current[:2][1]),
+                                                     Point(current[2:][0], current[2:][1]))
+
+            num_legal_strides = len(strides)
+            for stride in strides:
+                neighbor = [sum(x) for x in zip([stride.x, stride.y], current[:2])]
+                if self.__is_stride_legal(Point(neighbor[0], neighbor[1]), Point(current[:2][0], current[:2][1])):
+                    self.__remove_already_inside(neighbor, open_set)
                     move_cost = cost_per_meter * self.__euclidean_distance(Point(current[0], current[1]),
                                                                            Point(neighbor[0], neighbor[1]))
-                    tentative_g_score = g_score.get(current, float('inf')) + move_cost
-                    if tentative_g_score < g_score.get(tuple(neighbor), float('inf')):
-                        came_from[tuple(neighbor)] = current
-                        g_score[tuple(neighbor)] = tentative_g_score
-                        f_score[tuple(neighbor)] = g_score.get(tuple(neighbor), float('inf')) + self.__h(neighbor,
-                                                                                                         end_location,
-                                                                                                         weight)
-                        if tuple(neighbor) not in open_set:
-                            open_set.add(tuple(neighbor))
+                    tentative_g_score = g_score.get(tuple(current), float('inf')) + move_cost
+                    neighbor_state = tuple(neighbor + current[:2])
+                    if tentative_g_score < g_score.get(neighbor_state, float('inf')):
+                        came_from[neighbor_state] = current
+                        g_score[neighbor_state] = tentative_g_score
+                        f_score[neighbor_state] = tentative_g_score + self.__h(neighbor, end_location, weight)
+                        if neighbor_state not in open_set:
+                            open_set.add(neighbor_state)
+                else:
+                    num_legal_strides -= 1
+            if num_legal_strides == 0 and current[:2] == start_location:
+                return []
         return []
 
     def __gen_path_weighted_a_star(self, start_location: list, max_cost: float, cost_per_meter: float,
                                    weight: float = 1.0):
         """
-            This method creates a path from the given starting location to a randomized end
-            location with the cost of max_cost.
+        This method creates a path from the given starting location to a randomized end
+        location with the cost of max_cost.
         """
         path = [start_location]
         cur_start = start_location
         while True:
             next_goal = self._gen_random_point_under_constraints()
-            path += self.__weighted_a_star(cur_start, next_goal, cost_per_meter, weight)[1:]
+            previous_step = None
+            if len(path) > 1:
+                previous_step = path[-2]
+            new_path = self.__weighted_a_star(cur_start, [next_goal.x, next_goal.y], cost_per_meter, weight,
+                                              previous_step)
+            if not new_path and len(path) > 1:
+                path = path[:-1]
+            else:
+                path += new_path[1:]
             cur_start = path[-1]
-            if (len(path) - 1) * cost_per_meter > max_cost:
-                return path[:int(max_cost / cost_per_meter) + 1]
+            if (len(path) - 1) * self._stride_length * cost_per_meter > max_cost:
+                return path[:int((max_cost / cost_per_meter) / self._stride_length) + 1]
 
     def __create_path_csv_file(self, path: list, directory: str, path_number: int):
         """
@@ -827,6 +772,16 @@ class PathGenerator:
             if abs(strides[i].x - step.x) <= self.EPSILON and abs(strides[i].y - step.y) <= self.EPSILON:
                 del strides[i]
                 return
+
+    def __remove_already_inside(self, neighbor: list, open_set):
+        world_nei = self.__convert_map_point_to_world_point(Point(neighbor[0], neighbor[1]))
+        to_remove = []
+        for i in open_set:
+            world_i = self.__convert_map_point_to_world_point(Point(i[:2][0], i[:2][1]))
+            if self.__euclidean_distance(world_i, world_nei) < 1:
+                to_remove.append(i)
+        for i in to_remove:
+            open_set.remove(i)
 
     @staticmethod
     def __is_zero(val):
