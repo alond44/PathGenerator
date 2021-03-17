@@ -69,60 +69,11 @@ def init_map(self, input_path=None, file_name=None, save_tif=False, pixel_dist=2
 ```
 This method essentially uses the `DSMParcer` function for you so the requirement concerning the BinFile folder still holds.
 
-### 3. Change Map Resolution (Optional):
+### 3. Creating Paths:
 
-TODO: decide if these methods are still relevant.
-
-#### Zoom In
 
 ```python
-def map_zoom_in(self, multiplier: int)
-```
-
-* multiplier: The enhance multiplier. Must be > 0. Passing a negative value will cause the method to have no effect.
-
-We've created a way to get higher resolution of the drone's location by dividing each pixel to a few pixels such that each pixel will represent a smalller real world tile with the same height value.
-
-This method has some advantages and disadvantages:
-
-* Advantage: The drone's location is more spacific (as every pixel represents a smaller real life area). 
-* Advantage: The difference between the given constraints and the outputed path's cost (distance or time) is smaller. 
-* Disadvantage: The computation time becomes longer.
-
-These effects will be demonstrated in the results section.
-
-
-##### Illustration:
-
-![alt text](https://github.com/alond44/PathGenerator/blob/main/Ilustrations/zoom_in_example.png "Zoom In Example")
-
-
-#### Zoom Out 
-
-```python
-def map_zoom_out(self, multiplier: int)
-```
-
-The multiplier argument serves the same purpose as it does in the zoom in method.
-For this call: `pg.map_zoom_out(x)` the method will group the map's pixels to squares (with `x` pixels in each side) and then merge them into a single pixel with a height value of the maximum pixel height value out of the merged pixel group.
-'pg.map_zoom_out(x)' call essentially reverse the effect of 'pg.map_zoom_in(x)' if one was called earlier (it revert the map back to it's state before the zoom in call). However, the zoom out method is independent and does not have to be called after a zoom in call.  
-
-This method's advantages and disadvantages are the opposite from those of the zoom in method.
-
-##### Notes:
-* Using zoom out with multiplier M is possible even when the dsm map dimensions are YxY and Y is not divisable by M (refer to the illustration bellow for an example).
-* Using this method might cause information lose due to the max value pixel merge (lower resolution).
-
-
-##### Illustration:
-
-![alt text](https://github.com/alond44/PathGenerator/blob/main/Ilustrations/zoom_out_example.png "Zoom Out Example")
-
-
-### 4. Creating Paths:
-
-```python
-def gen_paths(self, flag: ConstraintType, constraint: float, path_type: PathType, start_location=None, path_num=1, to_print=False, weight=1.0)
+def gen_paths(self, flag: ConstraintType, constraint: float, path_type: PathType, start_location=None, path_num=1, to_print=False, weight=1.0, result_folder_path=None)
 ```
 
 parameters:
@@ -133,15 +84,62 @@ parameters:
 * path_num: The number of paths wanted.
 * to_print: Pass True to print the resulting paths over the dsm map.
 * weight: Relevant only when using 'a_star'. weight should be >= 1.
+* result_folder_path: The path to the folder we want our output csv files to be written to. If it is `None` the path files will be created in a "Path" folder inside the work directory.
 
 Return value - A list of 'path_num' paths.
+
+Note: The generated paths will be printed to .csv files. Each way point will be represented by location in every axes of the world's coordinate system as well as speed in each of those axes.
 
 #### Usage Example
 
 ```python
 pg.gen_paths(flag=ConstraintType.DISTANCE, constraint=1000, path_type=PathType.MAP_ROAM, start_location=[150, 150], path_nums=1, to_print=True, weight=2)
+pg.gen_paths(ConstraintType.TIME, 100, PathType.AREA_EXPLORE, path_num=5, to_print=True)
 ```
 
+
+### 4. Static Fields and Obstacle Debug Option:
+
+```python
+    SAMPLE_RATE = 0.6           # The drone way point minimal distance coefficient is SAMPLE_RATE * velocity.
+    MAX_STRIDE_LEN = 6.0        # Allowing the largest stride length to be MAX_STRIDE_LEN meters.
+    MIN_STRIDE_LEN = 2.0        # Allowing the smallest stride length to be MIN_STRIDE_LEN meters.
+    MAX_ANGLE = 60.0            # Allowing the largest maximum turn angle value to be MAX_ANGLE meters
+    MIN_ANGLE = 20.0            # Allowing the smallest maximum turn angle value to be MIN_ANGLE meters
+    DEGREE_DIVISOR = 2          # Allowing DEGREE_DIVISOR possible angles of right turn and DEGREE_DIVISOR of left turn.
+    RADIUS = 1.2                # We don't allow the drone to be within RADIUS meter of an obstacle.
+    RANDOM_TURN_PROB = 0.90     # The probability of a random turn while creating paths of type AREA_EXPLORE.
+    RANDOM_TURN_ANGLE = 120.0   # The desired turn angle during a random turn (in degrees).
+    EPSILON = 0.001
+    # Important: read the doc if you decide to change these constants.
+    # These are used to better our obstacle creation process.
+    MIN_RECURSION_DEPT = 50  # We don't allow the recursive method for obstacle tracing to have
+    # a maximal dept lower then 50.
+    RECURSION_TO_MAP_SIZE_RATIO = 75.0 / 770.0  # Used to set a depth maximum for the obstacle finding function.
+```
+These static fields responsible to many of the class's functionalities.
+
+* SAMPLE_RATE - this field indicates the way point sampling rate of the drone. A sampling rate of 0.5 way points per second means that each of the paths' way points need to be far enough from it's previous so that the drone won't fly past a way point and end up skipping it an option that might cause the drone to crash like shown in the following image.
+
+<img src="https://github.com/alond44/PathGenerator/blob/random_turn/Ilustrations/Collision%20Caused%20By%20Waypoint%20Skip.png" width="400">
+
+* MAX_STRIDE_LEN and MIN_STRIDE_LEN - these fields are responsible to adapt the distance traveled between way points so that the strides won't be too short and cost use in calculation time and not too long and the PathGenerator will have trouble moving through tight hallways (considering the drone needs to keep safety distance from obstacles).
+* MAX_ANGLE and MIN_ANGLE - similar to the stride length adjusting fields, these are used to adjust the turn angle recieved from the user while building instances. If the user inputs a turn angle larger than MAX_ANGLE, the turn angle will be MAX_ANGLE (and the similarly for MIN_ANGLE). This is used so the angles won't be too wide and the flight will be physically possible (while keeping a constant flight speed) and so that the angles won't be too narrow and multiple stride options won't be as different from each other.
+* DEGREE_DIVISOR - this field is responsible for the number of neighbor states each state of our search will have. Having a degree divisor with value 3 means we can proceed, from each way point, to 3 way points to the left of the drone, 3 to the right and 1 forward.
+* RADIUS - the drone will allways be at least RADIUS meters away from every obstacle while following outputed paths.
+* RANDOM_TURN_ANGLE - relevant for generating AREA_EXPLORE paths only. This field sets the maximal turn angle preformed while randomizing a turn when generating a path (the turn angle will be smaller if the drone could not preform the full turn angle). You can make the drone to do random circles while setting the value to 360 :).
+* EPSILON - a value that affects how we determine equality between two values. we might have numeric errors that can cause two values that supposed to be equal be slightly different therefore we use that variable to determin equality (|a - b| < EPSILON meaning a == b). There shouldn't be any need to change that value.
+* RANDOM_TURN_PROB - explained in the comment.
+* RECURSION_TO_MAP_SIZE_RATIO - we use recursion depth limitation in the recursive method used for creating the obstacle's polygons. We limit the depth to avoid exceeding the system's maximal depth and to create smaller obstacle polygons so we won't delimit as much legal flight zone (we use convex polygons to represent the obstacles and the might cover legal flight zone when delimiting concave obstacles - like a 'c' shaped one). 
+* MIN_RECURSION_DEPT - this helps us adjust the recursion depth recieved after calculating it using the previous field (upper limit is received using the os python library).
+
+ #### DEBUG_OBSTACLE
+ The path_generator file contains a boolean variable DEBUG_OBSTACLE that when True the obstacle's polygons will be printed when calling the print_path method.
+ If you want to check your obstacle creation, you can set the variable to be True, create a PathGenerator instance and call:
+ 
+ ```python
+ pg.print_path()
+ ```
 
 ### Extra Methods
 
