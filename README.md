@@ -108,7 +108,7 @@ pg.gen_paths(ConstraintType.TIME, 100, PathType.AREA_EXPLORE, path_num=5, to_pri
     MIN_ANGLE = 20.0            # Allowing the smallest maximum turn angle value to be MIN_ANGLE meters
     DEGREE_DIVISOR = 2          # Allowing DEGREE_DIVISOR possible angles of right turn and DEGREE_DIVISOR of left turn.
     RADIUS = 1.2                # We don't allow the drone to be within RADIUS meter of an obstacle.
-    RANDOM_TURN_PROB = 0.90     # The probability of a random turn while creating paths of type AREA_EXPLORE.
+    RANDOM_TURN_PROB = 0.10     # The probability of a random turn while creating paths of type AREA_EXPLORE.
     RANDOM_TURN_ANGLE = 120.0   # The desired turn angle during a random turn (in degrees).
     EPSILON = 0.001
     # Important: read the doc if you decide to change these constants.
