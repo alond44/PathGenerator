@@ -36,7 +36,7 @@ Make sure your .bin file is under workingfolder/BinFiles/
 
 #### Note:
 
-The folder 'BinFiles' does not have to be inside your working folder. The other option is to keep the dsm binary file in a folder named 'BinFiles' in a different folder ('Files' for example) and pass that folder's absolute path as 'Inputpath' to 'create_map'.
+The folder 'BinFiles' does not have to be inside your working folder. The other option is to keep the dsm binary file in a folder named 'BinFiles' in a different folder ('Files' for example) and pass that folder's absolute path as 'Inputpath' to 'DSMParcer'.
 
 ### 2. Create an Instance of the PathGenerator:
 
