@@ -1,12 +1,24 @@
-# TODO: add scipy to the requirements
+# TODO: update the requirements.txt file!
 from scipy.spatial.qhull import ConvexHull
 import numpy as np
+import math
+
+EPSILON = 10 ** -5
 
 
 class Point:
     def __init__(self, x: float, y: float):
         self.x = x
         self.y = y
+
+    def __eq__(self, other):
+        if isinstance(other, Point):
+            return math.sqrt((other.x - self.x) ** 2 + (other.y - self.y) ** 2) < EPSILON
+        return False
+
+    def __ne__(self, other):
+        """ Made to be compatible with Python 2 as well. """
+        return not self.__eq__(other)
 
     def __str__(self):
         return f"({self.x}, {self.y})"
