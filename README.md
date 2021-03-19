@@ -5,7 +5,7 @@ In the following README file we'll demonstrate how to use our Path Generating sy
 * Create paths for the drone over the city. 
 * Adjust the different parameters to meet different flight requirements 
 * Get the outputed paths.
-After that, we'll show some result generated using our code and explain the pros and cons of the two methods we implemented.
+After that, we'll show some result generated using our code and explain the pros and cons of the two methods we implemented. TODO: delete?
 
 ## How to Use
 All of our code is inside a python class named PathGenerator. In order to use it you should follow the steps below.
