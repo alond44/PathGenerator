@@ -422,6 +422,14 @@ class PathGenerator:
         """
         path = [start_location]
         cur_start = start_location
+        sample_strides = self._get_possible_strides(start_location)
+        sample_strides_world = [self.__convert_map_point_to_world_point(i) for i in sample_strides]
+        min_distance = float("inf")
+        for i in range(len(sample_strides_world)):
+            for j in range(i+1, len(sample_strides_world)):
+                dis = self.__euclidean_distance(sample_strides_world[i],sample_strides_world[j])
+                if dis < min_distance:
+                    self._min_stride_distance = 0.5 * dis
         while True:
             next_goal = self._gen_random_point_under_constraints()
             previous_step = None
@@ -448,7 +456,7 @@ class PathGenerator:
             writer = csv.writer(file)
             writer.writerow(["x_m_w", "y_m_w", "z_m_w", "vx_m_s", "vy_m_s", "vz_m_s"])
             next_world_pos = self.__convert_map_point_to_world_point(path[0])
-            z = self._flight_height  # TODO: figure out how we calculate the height.
+            z = self._flight_height
             for i in range(len(path) - 1):
                 cur_world_pos = next_world_pos
                 next_world_pos = self.__convert_map_point_to_world_point(path[i + 1])
@@ -503,7 +511,6 @@ class PathGenerator:
     """
 
     def _can_fly_over(self, point: Point):
-        # TODO: figure out the interpolation logic and reverse it here. (instead of using the int() rounding)
         """This method checks if a position in the dsm map got height value larger then the drone's flight height"""
         return self._dsm[int(point.x)][int(point.y)] > self._flight_height
 
@@ -778,7 +785,7 @@ class PathGenerator:
         to_remove = []
         for i in open_set:
             world_i = self.__convert_map_point_to_world_point(Point(i[:2][0], i[:2][1]))
-            if self.__euclidean_distance(world_i, world_nei) < 1:
+            if self.__euclidean_distance(world_i, world_nei) < self._min_stride_distance:
                 to_remove.append(i)
         for i in to_remove:
             open_set.remove(i)

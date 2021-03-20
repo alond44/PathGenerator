@@ -109,4 +109,4 @@ if __name__ == "__main__":
     # simple_example(pg)
     # path_generating_error_test(pg, ConstraintType.TIME, 100.0, path_num=100)
     # path_generating_calculation_time_test(pg, ConstraintType.TIME, 100.0, 100)
-    paths = pg.gen_paths(ConstraintType.TIME, 100, PathType.MAP_ROAM, path_num=5, to_print=True)
+    paths = pg.gen_paths(ConstraintType.TIME, 100, PathType.A_STAR, path_num=5, to_print=True)
