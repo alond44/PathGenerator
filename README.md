@@ -46,7 +46,7 @@ def __init__(self, velocity, flight_height, dsm=None, origin=(0.0, 0.0, 0.0), ma
 
 At this point you need to choose the flight parameters:
 * velocity: The drone's velocity (in meters per second).
-* flight_height: The flight's altitude (in meters).
+* flight_height: The flight's altitude in the world's coordinate system (measured in meters).
 * dsm: The dsm map we have created at step 1. Note we can pass the default value (`None`) and load the map using the `init_map` method after generating an instance.
 * origin: A distance vector between the world map's origin and the dsm map's origin. len(origin) must be 3.
 * map_dimensions: A two value tuple: (<row_number>, <column_number>).
