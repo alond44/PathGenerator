@@ -16,7 +16,7 @@ from DSM_Paths.DsmParser import DSMParcer
 from DSM_Paths.geometry import ConvexPolygon, Point
 
 # a flag for printing the obstacles polygons when printing the map.
-# if set to True, print_path method will also print the obstacle polygons.
+# if set to True, a print_path() method call will also print the obstacle polygons.
 DEBUG_OBSTACLE = False
 
 
@@ -64,7 +64,7 @@ class PathGenerator:
         velocity : float
             The drone's velocity in meters/second.
         flight_height : float
-            The flight's altitude in meters.
+            The flight's altitude in the world's coordinate system (measured in meters).
         dsm : List of Lists of floats
             The DSM map. We assume it is squared.
         origin: tuple of floats
@@ -94,6 +94,7 @@ class PathGenerator:
                 and len(origin) == 3 and len(map_dimensions) == 2 and len(pixel_dimensions) == 2:
             self._dsm = dsm
             self._org_vector = list(origin)
+            self._flight_height -= self._org_vector[2][0]
             self._max_recursion_limit = int(self.RECURSION_TO_MAP_SIZE_RATIO *
                                             max(map_dimensions[0], map_dimensions[1]))
             self._map_dim = list(map_dimensions)
@@ -117,9 +118,13 @@ class PathGenerator:
         a directory named 'BinFiles' inside the 'input_path' directory.
         If the save_tif argument is True the dsm map will be saved as a .tif image in a folder named DSMout under the
         name DSM0.tif.
+
+        Note:   - This method can be used for initiating the DSM map only. If you want to create paths on a
+                  different map create a new PathGenerator instance.
         """
         if input_path is not None and file_name is not None:
             _, _, _, x_org, y_org, z_org, wx, wy, dwx, dwy, self._dsm = DSMParcer(input_path, file_name, save_tif)
+            self._flight_height -= z_org
             self._org_vector = [x_org, y_org, z_org]
             self._map_dim = [wx, wy]
             self._pixel_dim = [dwx, dwy]
@@ -456,16 +461,16 @@ class PathGenerator:
             writer = csv.writer(file)
             writer.writerow(["x_m_w", "y_m_w", "z_m_w", "vx_m_s", "vy_m_s", "vz_m_s"])
             next_world_pos = self.__convert_map_point_to_world_point(path[0])
-            z = self._flight_height
+            z = self._flight_height + self._org_vector[2][0]
             for i in range(len(path) - 1):
                 cur_world_pos = next_world_pos
                 next_world_pos = self.__convert_map_point_to_world_point(path[i + 1])
                 theta = math.atan2(next_world_pos.y - cur_world_pos.y, next_world_pos.x - cur_world_pos.x)
                 x, y = cur_world_pos.x + self._org_vector[0][0], cur_world_pos.y + self._org_vector[1][0]
                 vx, vy = self._velocity * math.cos(theta), self._velocity * math.sin(theta)
-                writer.writerow([x, y, z, vx, vy, 0])
+                writer.writerow([x, y, z, vx, vy, 0.])
             final_pos = self.__convert_map_point_to_world_point(path[-1])
-            writer.writerow([final_pos.x, final_pos.y, z, 0, 0, 0])
+            writer.writerow([final_pos.x, final_pos.y, z, 0., 0., 0.])
 
     def _add_turn(self, cur_pos: Point, prev_pos: Point, turn_angle: float, cost_per_meter: float):
         """

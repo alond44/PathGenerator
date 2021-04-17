@@ -1,4 +1,3 @@
-# TODO: update the requirements.txt file!
 from scipy.spatial.qhull import ConvexHull
 import numpy as np
 import math
@@ -40,7 +39,6 @@ class ConvexPolygon:
             self.min_y, self.max_y = min(self.min_y, p.y), max(self.max_y, p.y)
             self.sorted_points.append(p)
 
-    # TODO: document this method in our report.
     def line_intersect(self, p1: Point, p2: Point):
         """
             This method return True iff a line formed by the given two points intersects with the convex polygon.
