@@ -272,6 +272,13 @@ class PathGenerator:
         else:
             print('Need to initiate map using init_map before we start.')
 
+    def get_step_travel_time(self):
+        """
+        This value should be used when following the outputted paths. Each go to way point command takes time to
+        be executed, this time is the length of a stride divided by the flight velocity.
+        """
+        return self._stride_length / self._velocity
+
     def calc_path_distance(self, path: list):
         """
             This method gets a path and returns the path's distance on the instance's map.
@@ -461,7 +468,8 @@ class PathGenerator:
             writer = csv.writer(file)
             writer.writerow(["x_m_w", "y_m_w", "z_m_w", "vx_m_s", "vy_m_s", "vz_m_s"])
             next_world_pos = self.__convert_map_point_to_world_point(path[0])
-            z = self._flight_height + self._org_vector[2][0]
+            # z = self._flight_height + self._org_vector[2][0]
+            z = self._flight_height
             for i in range(len(path) - 1):
                 cur_world_pos = next_world_pos
                 next_world_pos = self.__convert_map_point_to_world_point(path[i + 1])

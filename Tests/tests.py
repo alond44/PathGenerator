@@ -105,18 +105,18 @@ if __name__ == "__main__":
     flight_height = -50.0 + float(z_org[0])  # We want a flight altitude of -50 in the DSM map's coordinate system.
     pg = PathGenerator(velocity=7.0, flight_height=flight_height, dsm=dsm_, origin=(x_org, y_org, z_org),
                        map_dimensions=(Wx, Wy), pixel_dimensions=(dWx, dWy), max_angle=35.0)
-    paths = pg.gen_paths(flag=ConstraintType.TIME, constraint=100, path_type=PathType.MAP_ROAM, path_num=2,
+    paths = pg.gen_paths(flag=ConstraintType.TIME, constraint=100, path_type=PathType.AREA_EXPLORE, path_num=2,
                          to_print=False)
     for path in paths:  # Printing the resulted paths
         print(f"Path's travel time: {pg.calc_path_travel_time(path)}")
         pg.print_path(path)
-    paths = pg.gen_paths(flag=ConstraintType.DISTANCE, constraint=1000, path_type=PathType.AREA_EXPLORE, path_num=2,
-                         to_print=False)
-    for path in paths:  # Printing the resulted paths
-        print(f"Path's distance: {pg.calc_path_distance(path)}")
-        pg.print_path(path)
-    paths = pg.gen_paths(flag=ConstraintType.DISTANCE, constraint=500, path_type=PathType.A_STAR, path_num=2,
-                         to_print=False)
-    for path in paths:  # Printing the resulted paths
-        print(f"Path's distance: {pg.calc_path_distance(path)}")
-        pg.print_path(path)
+    # paths = pg.gen_paths(flag=ConstraintType.DISTANCE, constraint=1000, path_type=PathType.AREA_EXPLORE, path_num=2,
+    #                      to_print=False)
+    # for path in paths:  # Printing the resulted paths
+    #     print(f"Path's distance: {pg.calc_path_distance(path)}")
+    #     pg.print_path(path)
+    # paths = pg.gen_paths(flag=ConstraintType.DISTANCE, constraint=500, path_type=PathType.A_STAR, path_num=2,
+    #                      to_print=False)
+    # for path in paths:  # Printing the resulted paths
+    #     print(f"Path's distance: {pg.calc_path_distance(path)}")
+    #     pg.print_path(path)
