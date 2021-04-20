@@ -5,7 +5,6 @@ In the following README file we'll demonstrate how to use our Path Generating sy
 * Create paths for the drone over the city. 
 * Adjust the different parameters to meet different flight requirements 
 * Get the outputed paths.
-After that, we'll show some result generated using our code and explain the pros and cons of the two methods we implemented. TODO: delete?
 
 ## How to Use
 All of our code is inside a python class named PathGenerator. In order to use it you should follow the steps below.
@@ -171,15 +170,6 @@ def calc_path_travel_time(self, path: list)
 ```
 
 This method receives a path and returns the path's travel duration on the instance's map.
-
-### Tests Results
-
-The tests.py holds these function calls:
-(TODO: fill)
-
-#### Notes
-* We tested every combination of constraint type and path type (4 combinations) in both the error test and calculation time test.
-* The tests outputs can be found as .png or as .txt files under the 'Results/Tests Outputs' folder. 
 
 ### Summary
 In this project we have implemented 2 different algorithm for calculating paths for drones while avoiding obstacles (calculated by the drone height).
