@@ -171,6 +171,20 @@ def calc_path_travel_time(self, path: list)
 
 This method receives a path and returns the path's travel duration on the instance's map.
 
+### Output Format
+
+The outputed paths are written to csv files in a folder named 'Paths' in the working directory. For the following path generating method call:
+
+```python
+pg.gen_paths(flag=ConstraintType.DISTANCE, constraint=1000, path_type=PathType.AREA_EXPLORE, path_nums=100)
+```
+
+100 paths csv files (named  path_1.csv - path_100.csv) will be generated inside the paths foder. Each csv row represents a path way point is in the following format:
+x_m_w, y_m_w, z_m_w, vx_m_s, vy_m_s, vz_m_s
+where x_m_w is the x value (in meters) in the world's coordinate system (and similarly for y_m_w and z_m_w).
+The velocity values represent the drone's velocity in the current way point. vx_m_s is the velocity value (in meters per second) along the world's x axis.
+
+
 ### Summary
 In this project we have implemented 2 different algorithm for calculating paths for drones while avoiding obstacles (calculated by the drone height).
 We have shown in this document how we have tested our code, how to use it and the different results we have got from our experiments.
