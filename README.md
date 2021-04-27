@@ -173,7 +173,7 @@ This method receives a path and returns the path's travel duration on the instan
 
 ### Output Format
 
-The outputed paths are written to csv files in a folder named `Paths` in the working directory. For the following path generating method call:
+The outputted paths are written to csv files in a folder named `Paths` in the working directory. For the following path generating method call:
 
 ```python
 pg.gen_paths(flag=ConstraintType.DISTANCE, constraint=1000, path_type=PathType.AREA_EXPLORE, path_nums=100)
