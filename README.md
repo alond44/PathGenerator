@@ -183,8 +183,8 @@ pg.gen_paths(flag=ConstraintType.DISTANCE, constraint=1000, path_type=PathType.A
 
 `x_m_w, y_m_w, z_m_w, vx_m_s, vy_m_s, vz_m_s`
 
-where `x_m_w` is the x value (in meters) in the world's coordinate system (and similarly for `y_m_w` and `z_m_w`).
-`vx_m_s` is the velocity value (in meters per second) along the world's x axis.
+where `x_m_w` is the x value (in meters) in the world's coordinate system (and similarly for `y_m_w` and `z_m_w`) and `vx_m_s` is the velocity value (in meters per second) along the world's x axis.
+
 Meaning, this row 'x, y, z, vx, vy, vz' represent a way point along the path that's position is (x, y, z) and (vx, vy, vz) is the velocity vector on that way point. 
 
 
