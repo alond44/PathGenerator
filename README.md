@@ -180,7 +180,7 @@ pg.gen_paths(flag=ConstraintType.DISTANCE, constraint=1000, path_type=PathType.A
 ```
 
 100 paths csv files (named  path_1.csv - path_100.csv) will be generated inside the 'Paths' folder. Each csv row represents a path way point is in the following format:
-x_m_w, y_m_w, z_m_w, vx_m_s, vy_m_s, vz_m_s
+`x_m_w, y_m_w, z_m_w, vx_m_s, vy_m_s, vz_m_s`
 where x_m_w is the x value (in meters) in the world's coordinate system (and similarly for y_m_w and z_m_w).
 The velocity values represent the drone's velocity in the current way point. vx_m_s is the velocity value (in meters per second) along the world's x axis.
 
